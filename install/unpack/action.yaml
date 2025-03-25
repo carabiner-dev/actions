@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
 # SPDX-License-Identifier: Apache-2.0
 
+# [!] Build notice:
+# Note that this installer downloads and builds vexflow at head. This
+# will replaced with a verified installer soon.
+
 name: setup unpack
 author: carabiner-dev
 description: 'Installs the Carabiner unpack dependency analyzer to the runner environment'
@@ -43,7 +47,7 @@ runs:
         shell: bash
       - if: ${{ runner.os == 'Windows' }}
         run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        shell: pwsh
+        shell: bash
       
       - shell: bash
         run: unpack version
