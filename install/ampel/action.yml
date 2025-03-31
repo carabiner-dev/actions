@@ -34,7 +34,7 @@ runs:
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          cd .build/ampel && go build -o ${{ inputs.install-dir }}/bin/ampel .
+          cd .build/ampel && go build -o ${{ inputs.install-dir }}/bin/ampel ./cmd/ampel/
           cd - 
           rm -rf .build/ampel
 
