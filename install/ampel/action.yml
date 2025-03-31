@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: setup ampel
+author: carabiner-dev
+description: 'Installs the 🔴🟡🟢 AMPEL policy engine into to the runner environment'
+branding:
+  icon: 'download-cloud'
+  color: 'green'
+inputs:
+  install-dir:
+    description: 'Path to install the binary'
+    required: false
+    default: '$HOME/.carabiner'
+runs:
+  using: "composite"
+  steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          repository: carabiner-dev/ampel
+          path: '.build/ampel/'
+          ref: main
+
+      - name: Set up Go
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        with:
+          go-version: '1.24'
+          cache: false
+          check-latest: true
+
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p ${{ inputs.install-dir }}/bin || :
+          cd .build/ampel && go build -o ${{ inputs.install-dir }}/bin/ampel .
+          cd - 
+          rm -rf .build/ampel
+
+      - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+        shell: bash
+      - if: ${{ runner.os == 'Windows' }}
+        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+      
+      - shell: bash
+        run: ampel version
