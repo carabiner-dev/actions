@@ -17,8 +17,8 @@ runs:
   using: 'docker'
   image: 'docker://ghcr.io/carabiner-dev/drop'
   args:
-    get
-    --insecure=${{ inputs.insecure }}
-    --directory=${{ inputs.install-dir }}/bin
-    ${{ inputs.binary }}
+    - get
+    - --insecure=${{ inputs.insecure }}
+    - --directory=${{ inputs.install-dir }}/bin
+    - ${{ inputs.binary }}
 
