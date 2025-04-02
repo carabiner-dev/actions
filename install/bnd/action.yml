@@ -19,12 +19,12 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Drop bnd
-      uses: carabiner-dev/actions/drop@HEAD
-      with:
-        insecure: true
-        binary: carabiner-dev/bnd
-        directory: ${{ inputs.install-dir }} 
+    # - name: Drop bnd
+    #   uses: carabiner-dev/actions/drop@HEAD
+    #   with:
+    #     insecure: true
+    #     binary: carabiner-dev/bnd
+    #     directory: ${{ inputs.install-dir }} 
       # - name: Checkout code
       #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       #   with:
@@ -40,21 +40,19 @@ runs:
       #     cache: false
       #     check-latest: true
 
-      # - name: Build
-      #   shell: bash
-      #   run: |
-      #     mkdir -p ${{ inputs.install-dir }}/bin || :
-      #     cd .build/bnd && go build -o ${{ inputs.install-dir }}/bin/bnd .
-      #     cd - 
-      #     rm -rf .build/unpack
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p ${{ inputs.install-dir }}/bin || :
+          curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.0.1/bnd-v0.0.1-linux-arm64
 
-      # - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-      #   run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
-      #   shell: bash
-      # - if: ${{ runner.os == 'Windows' }}
-      #   run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      #   shell: bash
+      - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+        shell: bash
+      - if: ${{ runner.os == 'Windows' }}
+        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: bash
       
-    - shell: bash
-      run: bnd version
+      - shell: bash
+        run: bnd version
   
