@@ -45,7 +45,8 @@ runs:
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
           curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.0.1/bnd-v0.0.1-linux-arm64
-
+          chmod 0755 ${{ inputs.install-dir }}/bin/bnd
+          
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
         shell: bash
