@@ -19,11 +19,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      with:
-        persist-credentials: false
     - name: Drop bnd
-      uses: ../../drop/action.yaml
+      uses: carabiner-dev/actions/drop@HEAD
       with:
         insecure: true
         binary: carabiner-dev/bnd
