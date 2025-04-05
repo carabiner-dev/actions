@@ -5,9 +5,10 @@ name: 'Drop binaries to runner'
 description: 'Download binaries securely into the runner'
 inputs:
   insecure:
-    type: boolean
     description: Don't attempt to find and apply security policies
-  binary:  # id of input
+    required: false
+    default: 'false'
+  binary:
     description: 'Binary spec to download (eg sigstore/cosign)'
     required: true
   directory:
@@ -19,6 +20,5 @@ runs:
   args:
     - get
     - --insecure=${{ inputs.insecure }}
-    - --directory=${{ inputs.install-dir }}/bin
+    - --directory=${{ inputs.directory }}
     - ${{ inputs.binary }}
-
