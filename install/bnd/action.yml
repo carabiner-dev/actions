@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # [!] Build notice:
-# Note that this installer downloads and builds vexflow at head. This
+# Note that this installer downloads bnd fromthe release page. This
 # will replaced with a verified installer soon.
 
 name: setup bnd
@@ -40,11 +40,11 @@ runs:
       #     cache: false
       #     check-latest: true
 
-      - name: Build
+      - name: Install Linux Binary
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.0.1/bnd-v0.0.1-linux-amd64
+          curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.1.1/bnd-v0.1.1-linux-amd64
           chmod 0755 ${{ inputs.install-dir }}/bin/bnd
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
