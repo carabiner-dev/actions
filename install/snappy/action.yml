@@ -23,7 +23,7 @@ runs:
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/snappy https://github.com/carabiner-dev/snappy/releases/download/v0.1.1/snappy-linux-amd64
+          curl -Lo ${{ inputs.install-dir }}/bin/snappy https://github.com/carabiner-dev/snappy/releases/download/v0.1.2/snappy-linux-amd64
           chmod 0755 ${{ inputs.install-dir }}/bin/snappy
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
