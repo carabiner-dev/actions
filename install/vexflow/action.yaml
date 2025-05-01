@@ -45,7 +45,7 @@ runs:
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/vexflow https://github.com/carabiner-dev/vexflow/releases/download/v0.0.1-pre1/vexflow-v0.0.1-pre1-linux-amd64
+          curl -Lo ${{ inputs.install-dir }}/bin/vexflow https://github.com/carabiner-dev/vexflow/releases/download/v0.0.1-pre1/vexflow-v0.0.2-pre1-linux-amd64
           chmod 0755 ${{ inputs.install-dir }}/bin/vexflow
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
