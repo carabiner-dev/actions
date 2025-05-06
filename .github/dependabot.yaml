@@ -4,7 +4,9 @@
 version: 2
 updates:
   - package-ecosystem: "github-actions"
-    directory: "."
+    directories:
+      - "drop"
+      - "install/*"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
