@@ -17,6 +17,18 @@ inputs:
   collector:
     description: 'Collector to load to read attestations'
     required: true
+  attest:
+    description: 'Attest the policy evaluation results'
+    required: false
+    default: "true"
+  push-attestation:
+    description: 'Pushes the attestation to the GitHub attestations store'
+    required: false
+    default: "false"
+  fail:
+    description: 'Fail the workflow if the policy fails'
+    required: false
+    default: "true"
 runs:
   using: composite
   steps:
@@ -31,4 +43,6 @@ runs:
           --subject="sha1:${{ inputs.subject }}" \
           --collector="${{ inputs.collector }}" \
           --policy="${{ inputs.policy }}" \
+          --exit-code="${{ inputs.true }}"" \
+          --attest-results="${{ inputs.attest }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
