@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 name: 'Verify Policy'
+author: "carabiner-dev"
 description: 'Verifies a subject against a policy'
+branding:
+  icon: 'award'
+  color: 'green'
 inputs:
   policy:
     description: Don't attempt to find and apply security policies
@@ -13,16 +17,17 @@ inputs:
   collector:
     description: 'Collector to load to read attestations'
     default: '$HOME/.carabiner'
-using: composite
-steps:
-  - uses: carabiner-dev/actions/install/ampel@HEAD
-    name: 🔴🟡🟢 AMPEL Setup
-    id: install
+runs:
+  using: composite
+  steps:
+    - uses: carabiner-dev/actions/install/ampel@HEAD
+      name: 🔴🟡🟢 AMPEL Setup
+      id: install
 
-  - id: verify
-    shell: bash
-    run: |
-      ampel verify \
-        --subject="${{ inputs.subject }}" \
-        --collector="${{ inputs.collectors }}" \
-        --policy="${{ inputs.policy }}"
+    - id: verify
+      shell: bash
+      run: |
+        ampel verify \
+          --subject="${{ inputs.subject }}" \
+          --collector="${{ inputs.collectors }}" \
+          --policy="${{ inputs.policy }}"
