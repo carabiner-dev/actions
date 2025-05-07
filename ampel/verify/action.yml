@@ -30,5 +30,5 @@ runs:
         ampel verify \
           --subject="sha1:${{ inputs.subject }}" \
           --collector="${{ inputs.collector }}" \
-          --policy="${{ inputs.policy }}"
+          --policy="${{ inputs.policy }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
