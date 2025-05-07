@@ -16,7 +16,7 @@ inputs:
     required: true
   collector:
     description: 'Collector to load to read attestations'
-    default: '$HOME/.carabiner'
+    required: true
 runs:
   using: composite
   steps:
@@ -29,5 +29,5 @@ runs:
       run: |
         ampel verify \
           --subject="${{ inputs.subject }}" \
-          --collector="${{ inputs.collectors }}" \
+          --collector="${{ inputs.collector }}" \
           --policy="${{ inputs.policy }}"
