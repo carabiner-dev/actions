@@ -13,17 +13,16 @@ inputs:
   collector:
     description: 'Collector to load to read attestations'
     default: '$HOME/.carabiner'
-runs:
-  using: composite
-  steps:
-    - uses: carabiner-dev/actions/install/ampel@HEAD
-      name: 🔴🟡🟢 AMPEL Setup
-      id: install
+using: composite
+steps:
+  - uses: carabiner-dev/actions/install/ampel@HEAD
+    name: 🔴🟡🟢 AMPEL Setup
+    id: install
 
-    - id: verify
-      shell: bash
-      run: |
-        ampel verify \
-          --subject="${{ inputs.subject }}" \
-          --collector="${{ inputs.collectors }}" \
-          --policy="${{ inputs.policy }}"
+  - id: verify
+    shell: bash
+    run: |
+      ampel verify \
+        --subject="${{ inputs.subject }}" \
+        --collector="${{ inputs.collectors }}" \
+        --policy="${{ inputs.policy }}"
