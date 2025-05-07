@@ -28,6 +28,6 @@ runs:
       shell: bash
       run: |
         ampel verify \
-          --subject="${{ inputs.subject }}" \
+          --subject="sha1:${{ inputs.subject }}" \
           --collector="${{ inputs.collector }}" \
           --policy="${{ inputs.policy }}"
