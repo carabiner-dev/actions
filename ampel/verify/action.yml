@@ -16,7 +16,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/ampel@${{ github.sha }}
+    - uses: carabiner-dev/actions/install/ampel@HEAD
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
