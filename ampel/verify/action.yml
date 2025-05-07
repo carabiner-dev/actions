@@ -16,7 +16,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: ../../install/ampel
+    - uses: ./../../install/ampel
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
