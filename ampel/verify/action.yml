@@ -12,7 +12,7 @@ inputs:
     description: Don't attempt to find and apply security policies
     required: true
   subject:
-    description: 'Path to a file or hash (algo:value) so use as subject'
+    description: 'Path to a file or hash (algo:value) to use as verification subject'
     required: true
   collector:
     description: 'Collector to load to read attestations'
@@ -46,3 +46,19 @@ runs:
           --exit-code="${{ inputs.fail }}" \
           --attest-results="${{ inputs.attest }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
+
+    - if: ${{ inputs.attest == 'true' }}
+      name: Setup bnd
+      uses: carabiner-dev/actions/install/bnd@HEAD
+
+    - if: ${{ inputs.attest == 'true' }}
+      name: sign-ampel-results
+      run: |
+        bnd results.intoto.json >> ampel.bundle.json
+
+    - if: ${{ inputs.attest == 'true' }}
+      name: Push attestation to artifacts
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ampel.bundle.json
+        path: ampel.bundle.json
