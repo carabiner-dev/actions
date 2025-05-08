@@ -40,7 +40,7 @@ runs:
       shell: bash
       run: |
         ampel verify \
-          --subject="sha1:${{ inputs.subject }}" \
+          --subject="${{ inputs.subject }}" \
           --collector="${{ inputs.collector }}" \
           --policy="${{ inputs.policy }}" \
           --exit-code="${{ inputs.fail }}" \
