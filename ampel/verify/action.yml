@@ -53,6 +53,7 @@ runs:
 
     - if: ${{ inputs.attest == 'true' }}
       name: sign-ampel-results
+      shell: bash
       run: |
         bnd results.intoto.json >> ampel.bundle.json
 
