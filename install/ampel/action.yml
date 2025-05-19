@@ -41,7 +41,7 @@ runs:
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/ampel https://github.com/carabiner-dev/ampel/releases/download/v0.0.1-pre11/ampel-v0.0.1-pre11-linux-amd64
+          curl -Lo ${{ inputs.install-dir }}/bin/ampel https://github.com/carabiner-dev/ampel/releases/download/v0.0.1-pre12/ampel-v0.0.1-pre12-linux-amd64
           chmod 0755 ${{ inputs.install-dir }}/bin/ampel
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
