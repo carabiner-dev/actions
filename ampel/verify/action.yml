@@ -25,6 +25,10 @@ inputs:
     description: 'Pushes the attestation to the GitHub attestations store'
     required: false
     default: "false"
+  attestation:
+    description: 'Comma separated list of attestations to ingest'
+    required: false
+    default: ""
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -45,6 +49,7 @@ runs:
           --policy="${{ inputs.policy }}" \
           --exit-code="${{ inputs.fail }}" \
           --attest-results="${{ inputs.attest }}" \
+          --attestation="${{ inputs.attestation }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
 
     - if: ${{ inputs.attest == 'true' }}
