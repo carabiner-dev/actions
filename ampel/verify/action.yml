@@ -29,6 +29,10 @@ inputs:
     description: 'Comma separated list of attestations to ingest'
     required: false
     default: ""
+  signer:
+    description: 'Comma separated list of signer identity slugs'
+    required: false
+    default: ""
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -50,6 +54,7 @@ runs:
           --exit-code="${{ inputs.fail }}" \
           --attest-results="${{ inputs.attest }}" \
           --attestation="${{ inputs.attestation }}" \
+          --signer="${{ inputs.signer }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
 
     - if: ${{ inputs.attest == 'true' }}
