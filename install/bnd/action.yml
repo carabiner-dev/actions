@@ -44,7 +44,7 @@ runs:
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.2.2/bnd-v0.2.2-linux-amd64
+          curl -Lo ${{ inputs.install-dir }}/bin/bnd https://github.com/carabiner-dev/bnd/releases/download/v0.2.3/bnd-v0.2.3-linux-amd64
           chmod 0755 ${{ inputs.install-dir }}/bin/bnd
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
