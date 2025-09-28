@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Run Tests'
+author: "carabiner-dev"
+description: 'Runs tests and attests the results'
+branding:
+  icon: 'award'
+  color: 'green'
+inputs:
+  dir:
+    description: 'Directory to run the test suite'
+    required: false
+    default: "."
+  output:
+    description: "Path to write the tests attestation"
+    required: false
+    default: "tests.intoto.json"
+runs:
+  using: composite
+  steps:
+    - uses: carabiner-dev/actions/install/beaker@HEAD
+      name: Beaker Setup
+      id: install
+
+    - id: run-and-attest
+      shell: bash
+      run: |
+        beaker run \
+          --dir="${{ inputs.dir }}" \
+          --output="${{ inputs.output }}" 
