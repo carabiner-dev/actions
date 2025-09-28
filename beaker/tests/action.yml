@@ -7,6 +7,7 @@ description: 'Runs tests and attests the results'
 branding:
   icon: 'award'
   color: 'green'
+  
 inputs:
   dir:
     description: 'Directory to run the test suite'
@@ -16,6 +17,11 @@ inputs:
     description: "Path to write the tests attestation"
     required: false
     default: "tests.intoto.json"
+  sign:
+    description: "Sign the resulting attestation with the job's workload identity"
+    required: false
+    default: "true"
+
 runs:
   using: composite
   steps:
@@ -23,9 +29,26 @@ runs:
       name: Beaker Setup
       id: install
 
+    - uses: carabiner-dev/actions/install/bnd@HEAD
+      name: bnd Setup
+      id: install-bnd
+
     - id: run-and-attest
       shell: bash
       run: |
         beaker run \
           --dir="${{ inputs.dir }}" \
-          --output="${{ inputs.output }}" 
+          --output="${{ inputs.output }}.tmp"
+
+    - if: ${{ inputs.sign == 'true' }}
+      id: "sign-attestation"
+      shell: bash
+      run: |
+        bnd statement --out="${{ inputs.output }}" "${{ inputs.output }}.tmp"
+        rm "${{ inputs.output }}.tmp"
+
+    - if: ${{ inputs.sign != 'true' }}
+      id: "set-attestation-name"
+      shell: bash
+      run: |
+        mv "${{ inputs.output }}.tmp" "${{ inputs.output }}"
