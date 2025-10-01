@@ -25,11 +25,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: ./actions/install/beaker
+    - uses: ./install/beaker
       name: Beaker Setup
       id: install
 
-    - uses: ./actions/install/bnd
+    - uses: ./install/bnd
       name: bnd Setup
       id: install-bnd
 
