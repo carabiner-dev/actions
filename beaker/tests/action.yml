@@ -25,11 +25,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/beaker@HEAD
+    - uses: ./actions/install/beaker
       name: Beaker Setup
       id: install
 
-    - uses: carabiner-dev/actions/install/bnd@HEAD
+    - uses: ./actions/install/bnd
       name: bnd Setup
       id: install-bnd
 
