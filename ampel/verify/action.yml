@@ -21,6 +21,14 @@ inputs:
     description: 'Attest the policy evaluation results'
     required: false
     default: "true"
+  attest-format:
+    description: 'Format of the results attestation'
+    required: false
+    default: "ampel"
+  results-path:
+    description: "Path to store the results attestation"
+    required: false
+    default: "ampel.intoto.json"
   push-attestation:
     description: 'Pushes the attestation to the GitHub attestations store'
     required: false
@@ -53,6 +61,8 @@ runs:
           --policy="${{ inputs.policy }}" \
           --exit-code="${{ inputs.fail }}" \
           --attest-results="${{ inputs.attest }}" \
+          --attest-format="${{ inputs.attest-format }}"
+          --results-path="${{ inputs.results-path }}"
           --attestation="${{ inputs.attestation }}" \
           --signer="${{ inputs.signer }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
@@ -65,11 +75,12 @@ runs:
       name: sign-ampel-results
       shell: bash
       run: |
-        bnd statement results.intoto.json >> ampel.bundle.json
+        mv ${{ inputs.results-path }} ${{ inputs.results-path }}.tmp
+        bnd statement ${{ inputs.results-path }}.tmp >> ${{ inputs.results-path }}
 
-    - if: ${{ inputs.attest == 'true' }}
+    - if: ${{ inputs.attest == 'true' && inputs.push-attestation == 'true' }} 
       name: Push attestation to artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: ampel.bundle.json
-        path: ampel.bundle.json
+        name: ampel.intoto.json
+        path: ${{ inputs.results-path }}
