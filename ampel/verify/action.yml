@@ -61,8 +61,8 @@ runs:
           --policy="${{ inputs.policy }}" \
           --exit-code="${{ inputs.fail }}" \
           --attest-results="${{ inputs.attest }}" \
-          --attest-format="${{ inputs.attest-format }}"
-          --results-path="${{ inputs.results-path }}"
+          --attest-format="${{ inputs.attest-format }}" \
+          --results-path="${{ inputs.results-path }}" \
           --attestation="${{ inputs.attestation }}" \
           --signer="${{ inputs.signer }}" \
           --format="html" >> $GITHUB_STEP_SUMMARY
