@@ -15,7 +15,7 @@ inputs:
   version:
     description: 'AMPEL Version to Install'
     required: false
-    default: 'v0.1.0-beta.6'
+    default: 'v0.1.0-beta.7'
 runs:
   using: "composite"
   steps:
