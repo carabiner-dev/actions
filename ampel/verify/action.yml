@@ -51,8 +51,7 @@ runs:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-
-    - uses: ./install/ampel
+    - uses: carabiner-dev/actions/install/ampel@2ab9758b8509722af5ca8d97b146abf9b4067e3f
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
@@ -73,7 +72,7 @@ runs:
 
     - if: ${{ inputs.attest == 'true' }}
       name: Setup bnd
-      uses: ./install/bnd
+      uses: carabiner-dev/actions/install/bnd@2ab9758b8509722af5ca8d97b146abf9b4067e3f
 
     - if: ${{ inputs.attest == 'true' }}
       name: sign-ampel-results
