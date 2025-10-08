@@ -48,10 +48,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      with:
-        persist-credentials: false
-    - uses: carabiner-dev/actions/install/ampel@2ab9758b8509722af5ca8d97b146abf9b4067e3f
+    - uses: carabiner-dev/actions/install/ampel@6076797d696014eb28b74ff1b8baff1ed61ca710
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
