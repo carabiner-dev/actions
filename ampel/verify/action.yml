@@ -48,7 +48,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/ampel@5d8810718bc82f37add5904d92f85f35fa736ab4
+    - uses: carabiner-dev/actions/install/ampel@416592cb4e9b92304f46653bc7964f24aad7186f
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
@@ -69,7 +69,7 @@ runs:
 
     - if: ${{ inputs.attest == 'true' }}
       name: Setup bnd
-      uses: carabiner-dev/actions/install/bnd@5d8810718bc82f37add5904d92f85f35fa736ab4
+      uses: carabiner-dev/actions/install/bnd@416592cb4e9b92304f46653bc7964f24aad7186f
 
     - if: ${{ inputs.attest == 'true' }}
       name: sign-ampel-results
