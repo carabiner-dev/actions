@@ -60,6 +60,16 @@ runs:
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
+    - id: attest-check
+      shell: bash
+      run: |
+        ATTEST="${{ inputs.attest }}"
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "::notice::Attestation disabled: no token available for workflow_dispatch events"
+          ATTEST="false"
+        fi
+        echo "attest=${ATTEST}" >> "$GITHUB_OUTPUT"
+
     - id: verify
       shell: bash
       run: |
@@ -80,7 +90,7 @@ runs:
           --collector="${{ inputs.collector }}" \
           --policy="${{ inputs.policy }}" \
           --exit-code="${{ inputs.fail }}" \
-          --attest-results="${{ inputs.attest }}" \
+          --attest-results="${{ steps.attest-check.outputs.attest }}" \
           --attest-format="${{ inputs.attest-format }}" \
           --results-path="${{ inputs.results-path }}" \
           --attestation="${{ inputs.attestation }}" \
@@ -92,18 +102,18 @@ runs:
           rm -f "${KEYDATA_FILE}"
         fi
 
-    - if: ${{ inputs.attest == 'true' }}
+    - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: Setup bnd
       uses: carabiner-dev/actions/install/bnd@416592cb4e9b92304f46653bc7964f24aad7186f
 
-    - if: ${{ inputs.attest == 'true' }}
+    - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: sign-ampel-results
       shell: bash
       run: |
         mv ${{ inputs.results-path }} ${{ inputs.results-path }}.tmp
         bnd statement ${{ inputs.results-path }}.tmp >> ${{ inputs.results-path }}
 
-    - if: ${{ inputs.attest == 'true' && inputs.push-attestation == 'true' }} 
+    - if: ${{ steps.attest-check.outputs.attest == 'true' && inputs.push-attestation == 'true' }}
       name: Push attestation to artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
