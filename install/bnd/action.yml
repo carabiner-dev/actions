@@ -19,7 +19,7 @@ inputs:
   version:
     description: 'bnd version to install'
     required: false
-    default: 'v0.3.2'
+    default: 'v0.4.1'
 runs:
   using: "composite"
   steps:
