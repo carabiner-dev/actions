@@ -27,7 +27,18 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./install/${{ matrix.tool }}
+      - if: matrix.tool == 'ampel'
+        uses: ./install/ampel
+      - if: matrix.tool == 'bnd'
+        uses: ./install/bnd
+      - if: matrix.tool == 'beaker'
+        uses: ./install/beaker
+      - if: matrix.tool == 'revex'
+        uses: ./install/revex
+      - if: matrix.tool == 'snappy'
+        uses: ./install/snappy
+      - if: matrix.tool == 'unpack'
+        uses: ./install/unpack
 
       - name: Verify binary runs
         shell: bash
