@@ -41,6 +41,14 @@ inputs:
     description: 'Comma separated list of signer identity slugs'
     required: false
     default: ""
+  key:
+    description: 'Path to a key file to use for verification'
+    required: false
+    default: ""
+  keydata:
+    description: 'Raw key material to use for verification'
+    required: false
+    default: ""
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -55,6 +63,18 @@ runs:
     - id: verify
       shell: bash
       run: |
+        KEY_FLAGS=""
+
+        if [ -n "${{ inputs.key }}" ]; then
+          KEY_FLAGS="--key=${{ inputs.key }}"
+        fi
+
+        if [ -n "${{ inputs.keydata }}" ]; then
+          KEYDATA_FILE=$(mktemp)
+          printf '%s\n' '${{ inputs.keydata }}' > "${KEYDATA_FILE}"
+          KEY_FLAGS="${KEY_FLAGS} --key=${KEYDATA_FILE}"
+        fi
+
         ampel verify \
           --subject="${{ inputs.subject }}" \
           --collector="${{ inputs.collector }}" \
@@ -65,7 +85,12 @@ runs:
           --results-path="${{ inputs.results-path }}" \
           --attestation="${{ inputs.attestation }}" \
           --signer="${{ inputs.signer }}" \
+          ${KEY_FLAGS} \
           --format="html" >> $GITHUB_STEP_SUMMARY
+
+        if [ -n "${KEYDATA_FILE:-}" ]; then
+          rm -f "${KEYDATA_FILE}"
+        fi
 
     - if: ${{ inputs.attest == 'true' }}
       name: Setup bnd
