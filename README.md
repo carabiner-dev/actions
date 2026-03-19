@@ -16,9 +16,9 @@ its attestations against a policy.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.0.0
+- uses: carabiner-dev/actions/ampel/verify@v1.1.2
   with:
-    policy: 'path/to/policy.yaml'   # URI or path to p[policy code]
+    policy: 'path/to/policy.yaml'   # URI or path to policy code
     subject: 'path/to/artifact'     # or digest, eg sha256:98349875bf3e09...
     collector: 'github'             # Collectors used to retrieve attestations
 ```
@@ -36,6 +36,8 @@ its attestations against a policy.
 | `push-attestation` | No | `false` | Pushes the attestation to the GitHub attestations store |
 | `attestation` | No | `""` | Comma separated list of additional attestations to ingest |
 | `signer` | No | `""` | Comma separated list of expected signer identity slugs |
+| `key` | No | `""` | Path to a key file to use for verification |
+| `keydata` | No | `""` | Raw key material to use for verification |
 | `fail` | No | `true` | Fail the workflow if the policy fails |
 
 #### Examples
@@ -43,7 +45,7 @@ its attestations against a policy.
 **Basic verification:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.0.0
+- uses: carabiner-dev/actions/ampel/verify@v1.1.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/binary'
@@ -53,7 +55,7 @@ its attestations against a policy.
 **Verification with custom attestations:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.0.0
+- uses: carabiner-dev/actions/ampel/verify@v1.1.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'sha256:abc123...'
@@ -65,7 +67,7 @@ its attestations against a policy.
 **Verification with attestation push:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.0.0
+- uses: carabiner-dev/actions/ampel/verify@v1.1.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -78,7 +80,7 @@ its attestations against a policy.
 **Verification without failing the workflow:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.0.0
+- uses: carabiner-dev/actions/ampel/verify@v1.1.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
