@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: 'Sign Attestation'
+author: "carabiner-dev"
+description: 'Signs an in-toto statement or predicate using bnd'
+branding:
+  icon: 'edit-3'
+  color: 'green'
+
+inputs:
+  json-path:
+    description: 'Path to the JSON file to sign'
+    required: true
+  output:
+    description: 'Path to the output JSONL file. Attestations are appended if the file already exists.'
+    required: true
+  is-predicate:
+    description: 'Treat the input JSON as a predicate instead of an in-toto statement'
+    required: false
+    default: 'false'
+  subject:
+    description: 'Subject for the predicate (required when is-predicate is true)'
+    required: false
+    default: ''
+  predicate-type:
+    description: 'Predicate type URI (required when is-predicate is true)'
+    required: false
+    default: ''
+  bnd-version:
+    description: 'Version of bnd to install'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: carabiner-dev/actions/install/bnd@ecdc113d9b15ba5ff578e6da220d8ffd7ec877d3
+      name: Install bnd
+      with:
+        version: ${{ inputs.bnd-version }}
+      if: ${{ inputs.bnd-version != '' }}
+
+    - uses: carabiner-dev/actions/install/bnd@ecdc113d9b15ba5ff578e6da220d8ffd7ec877d3
+      name: Install bnd (latest)
+      if: ${{ inputs.bnd-version == '' }}
+
+    - name: Validate predicate inputs
+      if: ${{ inputs.is-predicate == 'true' }}
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.subject }}" ]; then
+          echo "::error::subject is required when is-predicate is true"
+          exit 1
+        fi
+        if [ -z "${{ inputs.predicate-type }}" ]; then
+          echo "::error::predicate-type is required when is-predicate is true"
+          exit 1
+        fi
+
+    - name: Sign statement
+      if: ${{ inputs.is-predicate != 'true' }}
+      shell: bash
+      run: |
+        ATTESTATION=$(bnd statement "${{ inputs.json-path }}")
+        if [ -f "${{ inputs.output }}" ]; then
+          echo "$ATTESTATION" >> "${{ inputs.output }}"
+        else
+          echo "$ATTESTATION" > "${{ inputs.output }}"
+        fi
+
+    - name: Sign predicate
+      if: ${{ inputs.is-predicate == 'true' }}
+      shell: bash
+      run: |
+        ATTESTATION=$(bnd predicate --subject="${{ inputs.subject }}" --type="${{ inputs.predicate-type }}" "${{ inputs.json-path }}")
+        if [ -f "${{ inputs.output }}" ]; then
+          echo "$ATTESTATION" >> "${{ inputs.output }}"
+        else
+          echo "$ATTESTATION" > "${{ inputs.output }}"
+        fi
