@@ -1,0 +1,111 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: go-versions
+author: carabiner-dev
+description: >
+  Reads a project's go.mod and the Go release API to expose the project Go
+  version, the current stable Go version, and the previous supported Go version.
+
+inputs:
+  go-mod-path:
+    description: 'Path to go.mod (default: go.mod in the repo root)'
+    required: false
+    default: 'go.mod'
+
+outputs:
+  GO_VERSION_PROJECT:
+    description: 'Full Go version from go.mod (e.g. 1.25.8)'
+    value: ${{ steps.versions.outputs.GO_VERSION_PROJECT }}
+  GO_MINOR_VERSION_PROJECT:
+    description: 'Minor Go version from go.mod without patch (e.g. 1.25)'
+    value: ${{ steps.versions.outputs.GO_MINOR_VERSION_PROJECT }}
+  GO_VERSION_STABLE:
+    description: 'Latest stable Go release (e.g. 1.26.1)'
+    value: ${{ steps.versions.outputs.GO_VERSION_STABLE }}
+  GO_MINOR_VERSION_STABLE:
+    description: 'Latest stable Go minor version without patch (e.g. 1.26)'
+    value: ${{ steps.versions.outputs.GO_MINOR_VERSION_STABLE }}
+  GO_VERSION_PREVIOUS:
+    description: 'Previous supported Go release (e.g. 1.25.8)'
+    value: ${{ steps.versions.outputs.GO_VERSION_PREVIOUS }}
+  GO_MINOR_VERSION_PREVIOUS:
+    description: 'Previous supported Go minor version without patch (e.g. 1.25)'
+    value: ${{ steps.versions.outputs.GO_MINOR_VERSION_PREVIOUS }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve Go versions
+      id: versions
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # --- Project version from go.mod ---
+        GOMOD="${{ inputs.go-mod-path }}"
+        if [ ! -f "$GOMOD" ]; then
+          echo "::error::go.mod not found at $GOMOD"
+          exit 1
+        fi
+
+        # Extract the version from the "go X.Y.Z" directive
+        GO_VERSION_PROJECT=$(grep -E '^go ' "$GOMOD" | head -1 | awk '{print $2}')
+        if [ -z "$GO_VERSION_PROJECT" ]; then
+          echo "::error::Could not parse Go version from $GOMOD"
+          exit 1
+        fi
+
+        # Strip patch to get minor version (1.25.8 -> 1.25, 1.25 -> 1.25)
+        GO_MINOR_VERSION_PROJECT=$(echo "$GO_VERSION_PROJECT" | grep -oE '^[0-9]+\.[0-9]+')
+
+        # --- Stable versions from the Go release API ---
+        # The API returns the two currently supported release branches,
+        # newest first: e.g. [go1.26.1, go1.25.8]
+        RELEASE_JSON=$(curl -sSf 'https://go.dev/dl/?mode=json')
+
+        # Extract unique minor versions (sorted descending) and their latest patch
+        # jq: strip "go" prefix, collect unique minor versions with their full version
+        eval "$(echo "$RELEASE_JSON" | python3 -c "
+        import json, sys
+        releases = json.load(sys.stdin)
+        seen = {}
+        for r in releases:
+            if not r['stable']:
+                continue
+            ver = r['version'].lstrip('go')
+            parts = ver.split('.')
+            minor = parts[0] + '.' + parts[1]
+            if minor not in seen:
+                seen[minor] = ver
+        # Sort by minor version descending
+        ordered = sorted(seen.items(), key=lambda x: list(map(int, x[0].split('.'))), reverse=True)
+        if len(ordered) >= 1:
+            print(f'GO_VERSION_STABLE={ordered[0][1]}')
+            print(f'GO_MINOR_VERSION_STABLE={ordered[0][0]}')
+        if len(ordered) >= 2:
+            print(f'GO_VERSION_PREVIOUS={ordered[1][1]}')
+            print(f'GO_MINOR_VERSION_PREVIOUS={ordered[1][0]}')
+        ")"
+
+        # Validate that we got all values
+        for var in GO_VERSION_STABLE GO_MINOR_VERSION_STABLE GO_VERSION_PREVIOUS GO_MINOR_VERSION_PREVIOUS; do
+          if [ -z "${!var:-}" ]; then
+            echo "::error::Failed to resolve $var from Go release API"
+            exit 1
+          fi
+        done
+
+        # --- Write outputs ---
+        {
+          echo "GO_VERSION_PROJECT=${GO_VERSION_PROJECT}"
+          echo "GO_MINOR_VERSION_PROJECT=${GO_MINOR_VERSION_PROJECT}"
+          echo "GO_VERSION_STABLE=${GO_VERSION_STABLE}"
+          echo "GO_MINOR_VERSION_STABLE=${GO_MINOR_VERSION_STABLE}"
+          echo "GO_VERSION_PREVIOUS=${GO_VERSION_PREVIOUS}"
+          echo "GO_MINOR_VERSION_PREVIOUS=${GO_MINOR_VERSION_PREVIOUS}"
+        } >> "$GITHUB_OUTPUT"
+
+        echo "Go version (project):  ${GO_VERSION_PROJECT} (minor: ${GO_MINOR_VERSION_PROJECT})"
+        echo "Go version (stable):   ${GO_VERSION_STABLE} (minor: ${GO_MINOR_VERSION_STABLE})"
+        echo "Go version (previous): ${GO_VERSION_PREVIOUS} (minor: ${GO_MINOR_VERSION_PREVIOUS})"
