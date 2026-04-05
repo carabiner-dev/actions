@@ -61,9 +61,21 @@ runs:
         BOOTSTRAP_DIR=$(mktemp -d)
         BINARY="${BOOTSTRAP_DIR}/ampel${{ steps.platform.outputs.ext }}"
 
-        # Download the pinned bootstrap version
-        curl -sSfL -o "${BINARY}" \
-          "https://github.com/carabiner-dev/ampel/releases/download/${BOOTSTRAP_VERSION}/${{ steps.platform.outputs.filename }}"
+        # Download the pinned bootstrap version with retries for transient errors
+        DOWNLOAD_URL="https://github.com/carabiner-dev/ampel/releases/download/${BOOTSTRAP_VERSION}/${{ steps.platform.outputs.filename }}"
+        MAX_RETRIES=3
+        for attempt in $(seq 1 "${MAX_RETRIES}"); do
+          if curl -sSfL -o "${BINARY}" "${DOWNLOAD_URL}"; then
+            break
+          fi
+          if [ "${attempt}" -eq "${MAX_RETRIES}" ]; then
+            echo "::error::Failed to download bootstrap ampel after ${MAX_RETRIES} attempts"
+            exit 1
+          fi
+          BACKOFF=$((attempt * 2))
+          echo "::warning::Download attempt ${attempt} failed, retrying in ${BACKOFF}s..."
+          sleep "${BACKOFF}"
+        done
 
         # Verify SHA-256 against hardcoded hashes.
         # These hashes are the trust root. They MUST be updated when rotating
