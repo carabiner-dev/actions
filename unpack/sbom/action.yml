@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: unpack sbom
+author: carabiner-dev
+description: 'Generates SBOMs for codebases discovered by unpack'
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  codebases:
+    description: >
+      Newline-separated list of codebase IDs to generate SBOMs for
+      (e.g. "golang:." or "npm:frontend"). When empty, SBOMs are
+      generated for every codebase discovered by `unpack ls`.
+    required: false
+    default: ''
+  ecosystems:
+    description: >
+      Newline-separated list of language ecosystems to include
+      (e.g. "golang", "npm", "rust"). When empty, all ecosystems
+      are included.
+    required: false
+    default: ''
+  ignore:
+    description: >
+      Newline-separated list of path patterns to pass to
+      `unpack ls --ignore` when discovering codebases.
+    required: false
+    default: ''
+  files:
+    description: 'Include file information in the generated SBOMs'
+    required: false
+    default: 'false'
+  format:
+    description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
+    required: false
+    default: 'spdx'
+  output-path:
+    description: >
+      Directory where generated SBOMs will be written.
+      Defaults to the current working directory.
+    required: false
+    default: '.'
+
+outputs:
+  files:
+    description: 'Newline-separated list of generated SBOM file paths'
+    value: ${{ steps.generate.outputs.files }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install unpack
+      uses: carabiner-dev/actions/install/unpack@main
+
+    - name: Generate SBOMs
+      id: generate
+      shell: bash
+      env:
+        INPUT_CODEBASES: ${{ inputs.codebases }}
+        INPUT_ECOSYSTEMS: ${{ inputs.ecosystems }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT_PATH: ${{ inputs.output-path }}
+      run: |
+        ${{ github.action_path }}/generate.sh
