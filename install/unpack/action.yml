@@ -1,10 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
 # SPDX-License-Identifier: Apache-2.0
 
-# [!] Build notice:
-# Note that this installer downloads and builds vexflow at head. This
-# will replaced with a verified installer soon.
-
 name: setup unpack
 author: carabiner-dev
 description: 'Installs the Carabiner unpack dependency analyzer to the runner environment'
@@ -16,38 +12,54 @@ inputs:
     description: 'Path to install the binary'
     required: false
     default: '$HOME/.carabiner'
+  version:
+    description: 'Unpack version to install'
+    required: false
+    default: 'v0.1.0'
 runs:
   using: "composite"
   steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-          repository: carabiner-dev/unpack
-          path: '.build/unpack/'
-          ref: main
+      - name: Detect platform
+        id: platform
+        shell: bash
+        run: |
+          OS="${{ runner.os }}"
+          ARCH="${{ runner.arch }}"
 
-      - name: Set up Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: '.build/unpack/go.mod'
-          cache: false
-          check-latest: true
+          case "$OS" in
+            Linux)  os="linux" ;;
+            macOS)  os="darwin" ;;
+            Windows) os="windows" ;;
+            *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
+          esac
 
-      - name: Build
+          case "$ARCH" in
+            X64)   arch="amd64" ;;
+            ARM64) arch="arm64" ;;
+            *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          ext=""
+          if [ "$os" = "windows" ]; then
+            ext=".exe"
+          fi
+
+          echo "filename=unpack-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+          echo "ext=${ext}" >> "$GITHUB_OUTPUT"
+
+      - name: Install unpack
         shell: bash
         run: |
           mkdir -p ${{ inputs.install-dir }}/bin || :
-          cd .build/unpack && go build -o ${{ inputs.install-dir }}/bin/unpack .
-          cd - 
-          rm -rf .build/unpack
+          curl -Lo ${{ inputs.install-dir }}/bin/unpack${{ steps.platform.outputs.ext }} https://github.com/carabiner-dev/unpack/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}
+          chmod 0755 ${{ inputs.install-dir }}/bin/unpack${{ steps.platform.outputs.ext }}
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
         shell: bash
       - if: ${{ runner.os == 'Windows' }}
         run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        shell: bash
-      
+        shell: pwsh
+
       - shell: bash
         run: unpack version
