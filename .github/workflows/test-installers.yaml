@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-latest, windows-latest]
-        tool: [ampel, bnd, beaker, revex, snappy, unpack]
+        tool: [ampel-bootstrap, ampel, bnd, beaker, revex, snappy, unpack]
         exclude:
           # beaker has no Windows binary
           - runner: windows-latest
@@ -24,6 +24,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - if: matrix.tool == 'ampel-bootstrap'
+        id: bootstrap
+        uses: ./install/ampel-bootstrap
       - if: matrix.tool == 'ampel'
         uses: ./install/ampel
       - if: matrix.tool == 'bnd'
@@ -37,6 +40,12 @@ jobs:
       - if: matrix.tool == 'unpack'
         uses: ./install/unpack
 
-      - name: Verify binary runs
+      - if: matrix.tool == 'ampel-bootstrap'
+        name: Verify bootstrap binary runs
+        shell: bash
+        run: ${{ steps.bootstrap.outputs.ampel-path }} version
+
+      - if: matrix.tool != 'ampel-bootstrap'
+        name: Verify binary runs
         shell: bash
         run: ${{ matrix.tool }} --help
