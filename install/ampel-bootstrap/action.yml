@@ -1,0 +1,113 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+# This action bootstraps a trusted ampel binary by downloading a pinned version
+# and verifying its integrity via hardcoded SHA-256 hashes. The trust root is
+# the commit SHA that pins this action -- callers who reference this action at a
+# specific commit transitively trust the hashes below.
+#
+# Once bootstrapped, the trusted ampel binary can be used to verify other
+# downloads (including newer ampel versions) against their SLSA provenance.
+#
+# To rotate the bootstrap version: update bootstrap-version, download the new
+# binaries, compute their SHA-256 hashes, and update the case block below.
+
+name: Bootstrap ampel
+author: carabiner-dev
+description: 'Installs a hash-verified ampel binary for use as a trust anchor'
+branding:
+  icon: 'shield'
+  color: 'green'
+outputs:
+  ampel-path:
+    description: 'Absolute path to the trusted ampel binary'
+    value: ${{ steps.bootstrap.outputs.ampel-path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        OS="${{ runner.os }}"
+        ARCH="${{ runner.arch }}"
+
+        case "$OS" in
+          Linux)  os="linux" ;;
+          macOS)  os="darwin" ;;
+          Windows) os="windows" ;;
+          *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
+        esac
+
+        case "$ARCH" in
+          X64)   arch="amd64" ;;
+          ARM64) arch="arm64" ;;
+          *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
+
+        ext=""
+        if [ "$os" = "windows" ]; then
+          ext=".exe"
+        fi
+
+        echo "filename=ampel-v1.1.3-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+        echo "ext=${ext}" >> "$GITHUB_OUTPUT"
+
+    - name: Download and verify bootstrap ampel
+      id: bootstrap
+      shell: bash
+      run: |
+        BOOTSTRAP_VERSION="v1.1.3"
+        BOOTSTRAP_DIR=$(mktemp -d)
+        BINARY="${BOOTSTRAP_DIR}/ampel${{ steps.platform.outputs.ext }}"
+
+        # Download the pinned bootstrap version with retries for transient errors
+        DOWNLOAD_URL="https://github.com/carabiner-dev/ampel/releases/download/${BOOTSTRAP_VERSION}/${{ steps.platform.outputs.filename }}"
+        MAX_RETRIES=3
+        for attempt in $(seq 1 "${MAX_RETRIES}"); do
+          if curl -sSfL -o "${BINARY}" "${DOWNLOAD_URL}"; then
+            break
+          fi
+          if [ "${attempt}" -eq "${MAX_RETRIES}" ]; then
+            echo "::error::Failed to download bootstrap ampel after ${MAX_RETRIES} attempts"
+            exit 1
+          fi
+          BACKOFF=$((attempt * 2))
+          echo "::warning::Download attempt ${attempt} failed, retrying in ${BACKOFF}s..."
+          sleep "${BACKOFF}"
+        done
+
+        # Verify SHA-256 against hardcoded hashes.
+        # These hashes are the trust root. They MUST be updated when rotating
+        # the bootstrap version.
+        case "${{ steps.platform.outputs.filename }}" in
+          ampel-v1.1.3-darwin-arm64)
+            EXPECTED="9de2602b7062dbfab52b7448c4b28476639233029c22eaaee3f27688c137d02c" ;;
+          ampel-v1.1.3-linux-amd64)
+            EXPECTED="f9bf25bc555894ef05ef49203b688e9c34912e49f4585ea96a9b60b56d3f600e" ;;
+          ampel-v1.1.3-linux-arm64)
+            EXPECTED="65ac53f51d830e87571b6dcfa1df616b56684192259e5ddea6aa9faa1807a888" ;;
+          ampel-v1.1.3-windows-amd64.exe)
+            EXPECTED="afd48f6a500bdf5e89aadc51eb31a53893dd25a5591f4ab401691f25b016ac6e" ;;
+          *)
+            echo "::error::No hardcoded hash for platform: ${{ steps.platform.outputs.filename }}"
+            exit 1 ;;
+        esac
+
+        if command -v sha256sum &>/dev/null; then
+          ACTUAL=$(sha256sum "${BINARY}" | awk '{print $1}')
+        else
+          ACTUAL=$(shasum -a 256 "${BINARY}" | awk '{print $1}')
+        fi
+
+        if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+          echo "::error::Bootstrap ampel hash verification failed!"
+          echo "::error::Expected: ${EXPECTED}"
+          echo "::error::Actual:   ${ACTUAL}"
+          rm -f "${BINARY}"
+          exit 1
+        fi
+
+        chmod 0755 "${BINARY}"
+        echo "ampel-path=${BINARY}" >> "$GITHUB_OUTPUT"
+        echo "Bootstrap ampel ${BOOTSTRAP_VERSION} verified successfully (sha256: ${ACTUAL})"
