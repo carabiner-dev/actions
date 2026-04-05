@@ -88,6 +88,37 @@ its attestations against a policy.
     fail: 'false'
 ```
 
+### unpack/sbom
+
+The `unpack/sbom` action generates SBOMs (Software Bill of Materials) for all
+codebases discovered by [unpack](https://github.com/carabiner-dev/unpack). It
+supports SPDX and CycloneDX formats and can filter by ecosystem or specific
+codebase IDs.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/unpack/sbom@main
+  with:
+    ecosystems: |
+      golang
+      npm
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `codebases` | No | `""` | Newline-separated list of codebase IDs to generate SBOMs for |
+| `ecosystems` | No | `""` | Newline-separated list of ecosystems to include |
+| `ignore` | No | `""` | Newline-separated list of path patterns to ignore |
+| `files` | No | `false` | Include file information in generated SBOMs |
+| `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` |
+| `output-path` | No | `.` | Directory to write SBOMs to |
+
+See the [unpack/sbom README](unpack/sbom/README.md) for full documentation,
+filename conventions, and more examples.
+
 ### Available Installers
 
 | Action | Description |
