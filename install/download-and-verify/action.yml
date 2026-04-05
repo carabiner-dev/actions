@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: Download and verify Carabiner binary
+author: carabiner-dev
+description: >
+  Downloads a Carabiner binary from GitHub releases and optionally verifies
+  it using a bootstrapped ampel trust anchor against SLSA provenance.
+branding:
+  icon: 'download-cloud'
+  color: 'green'
+inputs:
+  tool:
+    description: 'Name of the binary to install'
+    required: true
+  version:
+    description: 'Release tag to download (e.g. v1.0.0)'
+    required: true
+  install-dir:
+    description: 'Path to install the binary'
+    required: false
+    default: '$HOME/.carabiner'
+  repo:
+    description: 'GitHub repository under carabiner-dev (defaults to tool name)'
+    required: false
+    default: ''
+  verify:
+    description: 'Verify the binary with ampel against SLSA provenance'
+    required: false
+    default: 'true'
+  attestation-file:
+    description: 'Name of the attestation file in the release'
+    required: false
+    default: 'attestations.jsonl'
+runs:
+  using: "composite"
+  steps:
+      - name: Bootstrap trusted ampel
+        if: inputs.verify == 'true'
+        uses: carabiner-dev/actions/install/ampel-bootstrap@ba6f58b7120233bc312a76fb6bf3397704bcdcef # v1.1.5
+        id: bootstrap
+
+      - name: Detect platform
+        id: platform
+        shell: bash
+        run: |
+          OS="${{ runner.os }}"
+          ARCH="${{ runner.arch }}"
+
+          case "$OS" in
+            Linux)  os="linux" ;;
+            macOS)  os="darwin" ;;
+            Windows) os="windows" ;;
+            *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
+          esac
+
+          case "$ARCH" in
+            X64)   arch="amd64" ;;
+            ARM64) arch="arm64" ;;
+            *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+          esac
+
+          ext=""
+          if [ "$os" = "windows" ]; then
+            ext=".exe"
+          fi
+
+          REPO="${{ inputs.repo }}"
+          if [ -z "$REPO" ]; then
+            REPO="${{ inputs.tool }}"
+          fi
+
+          echo "filename=${{ inputs.tool }}-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+          echo "ext=${ext}" >> "$GITHUB_OUTPUT"
+          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+
+      - name: Install ${{ inputs.tool }}
+        shell: bash
+        run: |
+          mkdir -p ${{ inputs.install-dir }}/bin || :
+          curl -sSfL -o ${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }} \
+            "https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}"
+          chmod 0755 ${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}
+
+      - name: Verify ${{ inputs.tool }} binary
+        if: inputs.verify == 'true'
+        shell: bash
+        run: |
+          echo "::group::Verify ${{ inputs.tool }} ${{ inputs.version }}"
+          ${{ steps.bootstrap.outputs.ampel-path }} verify \
+            --subject="${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}" \
+            --collector="https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ inputs.attestation-file }}" \
+            --policy="git+https://github.com/carabiner-dev/policies#slsa/slsa-build-point.json"
+          echo "::endgroup::"
+
+      - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+        shell: bash
+      - if: ${{ runner.os == 'Windows' }}
+        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - shell: bash
+        run: ${{ inputs.tool }} version
