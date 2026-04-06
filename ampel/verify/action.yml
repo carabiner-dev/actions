@@ -49,6 +49,10 @@ inputs:
     description: 'Raw key material to use for verification'
     required: false
     default: ""
+  context:
+    description: 'Contextual values to pass to the policy (e.g. "key=value,key2=value2")'
+    required: false
+    default: ""
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -56,7 +60,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/ampel@687d1d0063f0b0dc90d463763c44e001148c449f
+    - uses: carabiner-dev/actions/install/ampel@ba6f58b7120233bc312a76fb6bf3397704bcdcef # v1.1.5
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
@@ -74,6 +78,11 @@ runs:
       shell: bash
       run: |
         KEY_FLAGS=""
+        CONTEXT_FLAGS=""
+
+        if [ -n "${{ inputs.context }}" ]; then
+          CONTEXT_FLAGS="--context \"${{ inputs.context }}\""
+        fi
 
         if [ -n "${{ inputs.key }}" ]; then
           KEY_FLAGS="--key=${{ inputs.key }}"
@@ -96,6 +105,7 @@ runs:
           --attestation="${{ inputs.attestation }}" \
           --signer="${{ inputs.signer }}" \
           ${KEY_FLAGS} \
+          ${CONTEXT_FLAGS} \
           --format="html" >> $GITHUB_STEP_SUMMARY
 
         if [ -n "${KEYDATA_FILE:-}" ]; then
@@ -104,7 +114,7 @@ runs:
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: Setup bnd
-      uses: carabiner-dev/actions/install/bnd@687d1d0063f0b0dc90d463763c44e001148c449f
+      uses: carabiner-dev/actions/install/bnd@ba6f58b7120233bc312a76fb6bf3397704bcdcef # v1.1.5
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: sign-ampel-results
