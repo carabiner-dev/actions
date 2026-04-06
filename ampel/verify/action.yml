@@ -49,6 +49,10 @@ inputs:
     description: 'Raw key material to use for verification'
     required: false
     default: ""
+  context:
+    description: 'Contextual values to pass to the policy (e.g. "key=value,key2=value2")'
+    required: false
+    default: ""
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -74,6 +78,11 @@ runs:
       shell: bash
       run: |
         KEY_FLAGS=""
+        CONTEXT_FLAGS=""
+
+        if [ -n "${{ inputs.context }}" ]; then
+          CONTEXT_FLAGS="--context \"${{ inputs.context }}\""
+        fi
 
         if [ -n "${{ inputs.key }}" ]; then
           KEY_FLAGS="--key=${{ inputs.key }}"
@@ -96,6 +105,7 @@ runs:
           --attestation="${{ inputs.attestation }}" \
           --signer="${{ inputs.signer }}" \
           ${KEY_FLAGS} \
+          ${CONTEXT_FLAGS} \
           --format="html" >> $GITHUB_STEP_SUMMARY
 
         if [ -n "${KEYDATA_FILE:-}" ]; then
