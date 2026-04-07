@@ -119,6 +119,16 @@ codebase IDs.
 See the [unpack/sbom README](unpack/sbom/README.md) for full documentation,
 filename conventions, and more examples.
 
+### Go Actions
+
+| Action | Description |
+| --- | --- |
+| `go/versions` | Resolves the project, latest stable, and previous supported Go versions |
+| `go/check-latest` | Checks that `go.mod` references the latest stable Go release |
+| `go/check-previous` | Checks that `go.mod` references the previous supported Go release |
+
+See the [go/ README](go/README.md) for full documentation and examples.
+
 ### Available Installers
 
 | Action | Description |
