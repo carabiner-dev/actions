@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: go-check-previous
+author: carabiner-dev
+description: >
+  Checks that a project's go.mod references the previous supported Go release.
+  Fails with an actionable error message if the version is outdated.
+
+inputs:
+  go-mod-path:
+    description: 'Path to go.mod (default: go.mod in the repo root)'
+    required: false
+    default: 'go.mod'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve Go versions
+      id: versions
+      uses: carabiner-dev/actions/go/versions@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
+      with:
+        go-mod-path: ${{ inputs.go-mod-path }}
+
+    - name: Check go.mod uses previous supported Go
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        PROJECT="${{ steps.versions.outputs.GO_VERSION_PROJECT }}"
+        PREVIOUS="${{ steps.versions.outputs.GO_VERSION_PREVIOUS }}"
+
+        echo "Project go.mod version:       ${PROJECT}"
+        echo "Previous supported version:   ${PREVIOUS}"
+
+        if [ "$PROJECT" != "$PREVIOUS" ]; then
+          echo "::error::go.mod is using Go ${PROJECT} but the previous supported release is Go ${PREVIOUS}. Please update go.mod to Go ${PREVIOUS}."
+          exit 1
+        fi
+
+        echo "go.mod is up to date with the previous supported Go release (${PREVIOUS})."

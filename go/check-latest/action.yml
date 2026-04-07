@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: go-check-latest
+author: carabiner-dev
+description: >
+  Checks that a project's go.mod references the latest stable Go release.
+  Fails with an actionable error message if the version is outdated.
+
+inputs:
+  go-mod-path:
+    description: 'Path to go.mod (default: go.mod in the repo root)'
+    required: false
+    default: 'go.mod'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve Go versions
+      id: versions
+      uses: carabiner-dev/actions/go/versions@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
+      with:
+        go-mod-path: ${{ inputs.go-mod-path }}
+
+    - name: Check go.mod uses latest stable Go
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        PROJECT="${{ steps.versions.outputs.GO_VERSION_PROJECT }}"
+        STABLE="${{ steps.versions.outputs.GO_VERSION_STABLE }}"
+
+        echo "Project go.mod version: ${PROJECT}"
+        echo "Latest stable version:  ${STABLE}"
+
+        if [ "$PROJECT" != "$STABLE" ]; then
+          echo "::error::go.mod is using Go ${PROJECT} but the latest stable release is Go ${STABLE}. Please update go.mod to Go ${STABLE}."
+          exit 1
+        fi
+
+        echo "go.mod is up to date with the latest stable Go release (${STABLE})."
