@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: Check Binary Versions
+
+on:
+  schedule:
+    - cron: '0 */3 * * 1-5' # Every 3 hours on weekdays
+    - cron: '0 8,20 * * 0,6' # Twice a day on weekends (8:00 and 20:00 UTC)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: ampel
+            repo: carabiner-dev/ampel
+          - tool: beaker
+            repo: carabiner-dev/beaker
+          - tool: bnd
+            repo: carabiner-dev/bnd
+          - tool: revex
+            repo: carabiner-dev/revex
+          - tool: snappy
+            repo: carabiner-dev/snappy
+          - tool: unpack
+            repo: carabiner-dev/unpack
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Check and update version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOL: ${{ matrix.tool }}
+          REPO: ${{ matrix.repo }}
+        shell: bash
+        run: |
+          ACTION_FILE="install/${TOOL}/action.yml"
+          if [ ! -f "$ACTION_FILE" ]; then
+            ACTION_FILE="install/${TOOL}/action.yaml"
+          fi
+
+          if [ ! -f "$ACTION_FILE" ]; then
+            echo "::warning::No action file found for ${TOOL}"
+            exit 0
+          fi
+
+          # Get current default version from the action file
+          CURRENT=$(grep -A2 "^  version:" "$ACTION_FILE" | grep "default:" | sed "s/.*default: *['\"]\\(.*\\)['\"].*/\\1/")
+          if [ -z "$CURRENT" ]; then
+            echo "::notice::No version default found in ${ACTION_FILE}, skipping"
+            exit 0
+          fi
+          echo "Current version of ${TOOL}: ${CURRENT}"
+
+          # Get latest release tag from GitHub
+          LATEST=$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || true)
+          if [ -z "$LATEST" ]; then
+            echo "::warning::Could not fetch latest release for ${REPO}"
+            exit 0
+          fi
+          echo "Latest release of ${TOOL}: ${LATEST}"
+
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "${TOOL} is already up to date"
+            exit 0
+          fi
+
+          BRANCH="update-${TOOL}-${LATEST}"
+
+          # Check if a PR already exists for this update
+          EXISTING=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length')
+          if [ "$EXISTING" != "0" ]; then
+            echo "PR already exists for ${TOOL} ${LATEST}, skipping"
+            exit 0
+          fi
+
+          # Create branch and update the version
+          git checkout -b "$BRANCH"
+          sed -i "s/default: '${CURRENT}'/default: '${LATEST}'/" "$ACTION_FILE"
+
+          git add "$ACTION_FILE"
+          git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+            commit -m "Update ${TOOL} installer default to ${LATEST}"
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --title "Update ${TOOL} installer to ${LATEST}" \
+            --body "$(cat <<EOF
+          ## Summary
+
+          - Bumps the default version of the \`${TOOL}\` installer from \`${CURRENT}\` to \`${LATEST}\`.
+          - Latest release: https://github.com/${REPO}/releases/tag/${LATEST}
+
+          This PR was automatically created by the check-binary-versions workflow.
+          EOF
+          )" \
+            --head "$BRANCH" \
+            --base main
