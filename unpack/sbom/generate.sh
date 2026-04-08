@@ -10,8 +10,13 @@ set -euo pipefail
 # Resolve inputs
 # ---------------------------------------------------------------------------
 FORMAT="${INPUT_FORMAT:-spdx}"
-OUTPUT_PATH="${INPUT_OUTPUT_PATH:-.}"
 FILES_FLAG="${INPUT_FILES:-false}"
+
+if [[ -n "${INPUT_OUTPUT_PATH:-}" ]]; then
+  OUTPUT_PATH="${INPUT_OUTPUT_PATH}"
+else
+  OUTPUT_PATH="$(mktemp -d)"
+fi
 
 case "${FORMAT}" in
   spdx)            EXTRACT_FMT="spdx"     ; EXT="spdx.json" ;;

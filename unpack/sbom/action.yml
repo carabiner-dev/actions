@@ -40,9 +40,16 @@ inputs:
   output-path:
     description: >
       Directory where generated SBOMs will be written.
-      Defaults to the current working directory.
+      When empty, a temporary directory is created automatically.
     required: false
-    default: '.'
+    default: ''
+  push-to-release:
+    description: >
+      When set, upload the generated SBOMs to the GitHub release
+      matching this tag (e.g. "v1.2.3"). Requires the GH_TOKEN
+      environment variable to be set.
+    required: false
+    default: ''
 
 outputs:
   files:
@@ -67,3 +74,15 @@ runs:
         INPUT_OUTPUT_PATH: ${{ inputs.output-path }}
       run: |
         ${{ github.action_path }}/generate.sh
+
+    - name: Upload SBOMs to release
+      if: inputs.push-to-release != ''
+      shell: bash
+      env:
+        SBOM_FILES: ${{ steps.generate.outputs.files }}
+        RELEASE_TAG: ${{ inputs.push-to-release }}
+      run: |
+        for f in ${SBOM_FILES}; do
+          echo "Uploading ${f} to release ${RELEASE_TAG}"
+          gh release upload "${RELEASE_TAG}" "${f}"
+        done
