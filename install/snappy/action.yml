@@ -48,7 +48,7 @@ runs:
             ext=".exe"
           fi
 
-          echo "filename=snappy-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+          echo "filename=snappy-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
           echo "ext=${ext}" >> "$GITHUB_OUTPUT"
 
       - name: Install snappy
