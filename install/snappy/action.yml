@@ -19,52 +19,48 @@ inputs:
   version:
     description: 'snappy version to install'
     required: false
-    default: 'v0.2.1'
+    default: 'v0.2.3'
 runs:
   using: "composite"
   steps:
-      - name: Detect platform
-        id: platform
-        shell: bash
-        run: |
-          OS="${{ runner.os }}"
-          ARCH="${{ runner.arch }}"
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        OS="${{ runner.os }}"
+        ARCH="${{ runner.arch }}"
 
-          case "$OS" in
-            Linux)  os="linux" ;;
-            macOS)  os="darwin" ;;
-            Windows) os="windows" ;;
-            *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
-          esac
+        case "$OS" in
+          Linux)  os="linux" ;;
+          macOS)  os="darwin" ;;
+          Windows) os="windows" ;;
+          *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
+        esac
 
-          case "$ARCH" in
-            X64)   arch="amd64" ;;
-            ARM64) arch="arm64" ;;
-            *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
-          esac
+        case "$ARCH" in
+          X64)   arch="amd64" ;;
+          ARM64) arch="arm64" ;;
+          *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+        esac
 
-          ext=""
-          if [ "$os" = "windows" ]; then
-            ext=".exe"
-          fi
+        ext=""
+        if [ "$os" = "windows" ]; then
+          ext=".exe"
+        fi
 
-          echo "filename=snappy-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
-          echo "ext=${ext}" >> "$GITHUB_OUTPUT"
-
-      - name: Install snappy
-        shell: bash
-        run: |
-          mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/snappy${{ steps.platform.outputs.ext }} https://github.com/carabiner-dev/snappy/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}
-          chmod 0755 ${{ inputs.install-dir }}/bin/snappy${{ steps.platform.outputs.ext }}
-
-      - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
-        shell: bash
-      - if: ${{ runner.os == 'Windows' }}
-        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        shell: pwsh
-
-      - shell: bash
-        run: snappy version
-  
+        echo "filename=snappy-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+        echo "ext=${ext}" >> "$GITHUB_OUTPUT"
+    - name: Install snappy
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.install-dir }}/bin || :
+        curl -Lo ${{ inputs.install-dir }}/bin/snappy${{ steps.platform.outputs.ext }} https://github.com/carabiner-dev/snappy/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}
+        chmod 0755 ${{ inputs.install-dir }}/bin/snappy${{ steps.platform.outputs.ext }}
+    - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+      shell: bash
+    - if: ${{ runner.os == 'Windows' }}
+      run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+    - shell: bash
+      run: snappy version
