@@ -29,7 +29,16 @@ That's it. With no inputs, the action will:
 | `ignore` | No | `""` | Newline-separated list of path patterns to pass to `unpack ls --ignore` when discovering codebases. |
 | `files` | No | `false` | Include file information in the generated SBOMs. |
 | `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` (also accepts `cdx`). |
-| `output-path` | No | `.` | Directory where generated SBOMs will be written. |
+| `output-path` | No | `""` | Directory where generated SBOMs will be written. When empty, a temporary directory is created automatically. |
+| `push-to-release` | No | `""` | When set, upload the generated SBOMs to the GitHub release matching this tag (e.g. `v1.2.3`). Requires `GH_TOKEN` to be set in the environment. |
+
+## Permissions
+
+When using `push-to-release`, the token set in `GH_TOKEN` must have `contents: write`
+permission to upload assets to the GitHub release.
+
+If you want to sign the generated SBOMs, the workflow also needs `id-token: write`
+permission to request an OIDC token for signing.
 
 ## Outputs
 
@@ -113,6 +122,20 @@ steps:
       ignore: |
         vendor
         third_party
+```
+
+### Upload SBOMs to a GitHub release
+
+```yaml
+steps:
+  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+
+  - uses: carabiner-dev/actions/unpack/sbom@main
+    with:
+      output-path: /tmp
+      push-to-release: ${{ steps.tag.outputs.tag_name }}
+    env:
+      GH_TOKEN: ${{ github.token }}
 ```
 
 ### Upload SBOMs as artifacts
