@@ -54,7 +54,7 @@ jobs:
           fi
 
           # Get current default version from the action file
-          CURRENT=$(grep -A2 "^  version:" "$ACTION_FILE" | grep "default:" | sed "s/.*default: *['\"]\\(.*\\)['\"].*/\\1/")
+          CURRENT=$(yq '.inputs.version.default' "$ACTION_FILE")
           if [ -z "$CURRENT" ]; then
             echo "::notice::No version default found in ${ACTION_FILE}, skipping"
             exit 0
