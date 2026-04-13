@@ -1,0 +1,137 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'SLSA Provenance Generator'
+author: "carabiner-dev"
+description: 'Observes a workflow run and generates a signed SLSA provenance attestation using tejolote'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  sign:
+    description: "Sign the attestation using the job's workload identity (Sigstore)"
+    required: false
+    default: "true"
+  slsa-version:
+    description: "SLSA predicate version to generate (1.0 or 0.2)"
+    required: false
+    default: "1.0"
+  output:
+    description: "Path to write the provenance attestation"
+    required: false
+    default: "provenance.intoto.jsonl"
+  watch-jobs:
+    description: >-
+      Comma-separated list of job names to watch. If empty and the action
+      detects it is running inside the same workflow run being attested,
+      it will automatically watch all sibling jobs.
+    required: false
+    default: ""
+  artifacts:
+    description: >-
+      Comma-separated list of additional artifact storage URIs to collect
+      from (e.g. 'oci://registry/image,gs://bucket/path'). GitHub Actions
+      artifacts from the run are always collected automatically.
+    required: false
+    default: ""
+  dependencies:
+    description: >-
+      Comma-separated list of dependency URIs to record in the provenance
+      (e.g. 'git+https://github.com/org/repo@sha,image@sha256:digest')
+    required: false
+    default: ""
+
+outputs:
+  attestation:
+    description: "Path to the generated provenance attestation file"
+    value: ${{ steps.attest.outputs.attestation }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      with:
+        go-version: "1.26.2"
+        cache: false
+
+    - name: Checkout tejolote
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: kubernetes-sigs/tejolote
+        ref: main
+        path: .tejolote-src
+        persist-credentials: false
+
+    - name: Build tejolote from source
+      id: build-tejolote
+      shell: bash
+      run: |
+        cd .tejolote-src
+        go build -o tejolote ./cmd/tejolote
+        TEJOLOTE_BIN="$(pwd)/tejolote"
+        echo "bin=$TEJOLOTE_BIN" >> "$GITHUB_OUTPUT"
+        "$TEJOLOTE_BIN" version || "$TEJOLOTE_BIN" --help | head -5
+
+    - name: Generate provenance attestation
+      id: attest
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        TEJOLOTE="${{ steps.build-tejolote.outputs.bin }}"
+        SPEC_URL="github://${{ github.repository }}/${{ github.run_id }}"
+        OUTPUT="${{ inputs.output }}"
+
+        ARGS=(
+          "$SPEC_URL"
+          --slsa="${{ inputs.slsa-version }}"
+          --output="$OUTPUT"
+        )
+
+        # Signing
+        if [[ "${{ inputs.sign }}" == "true" ]]; then
+          ARGS+=(--sign)
+        fi
+
+        # Watch specific jobs if specified
+        if [[ -n "${{ inputs.watch-jobs }}" ]]; then
+          ARGS+=(--watch-jobs="${{ inputs.watch-jobs }}")
+        fi
+
+        # Additional artifact sources
+        if [[ -n "${{ inputs.artifacts }}" ]]; then
+          IFS=',' read -ra ARTIFACT_URIS <<< "${{ inputs.artifacts }}"
+          for uri in "${ARTIFACT_URIS[@]}"; do
+            uri=$(echo "$uri" | xargs)  # trim whitespace
+            if [[ -n "$uri" ]]; then
+              ARGS+=(--artifacts="$uri")
+            fi
+          done
+        fi
+
+        # Additional dependencies
+        if [[ -n "${{ inputs.dependencies }}" ]]; then
+          IFS=',' read -ra DEP_URIS <<< "${{ inputs.dependencies }}"
+          for uri in "${DEP_URIS[@]}"; do
+            uri=$(echo "$uri" | xargs)
+            if [[ -n "$uri" ]]; then
+              ARGS+=(--dependency="$uri")
+            fi
+          done
+        fi
+
+        echo "::group::Running tejolote attest"
+        echo "tejolote attest ${ARGS[*]}"
+        "$TEJOLOTE" attest "${ARGS[@]}"
+        echo "::endgroup::"
+
+        echo "attestation=$OUTPUT" >> "$GITHUB_OUTPUT"
+
+    - name: Clean up tejolote source
+      if: always()
+      shell: bash
+      run: rm -rf .tejolote-src
