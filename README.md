@@ -16,7 +16,7 @@ its attestations against a policy.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.1.2
+- uses: carabiner-dev/actions/ampel/verify@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     policy: 'path/to/policy.yaml'   # URI or path to policy code
     subject: 'path/to/artifact'     # or digest, eg sha256:98349875bf3e09...
@@ -45,7 +45,7 @@ its attestations against a policy.
 **Basic verification:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.1.2
+- uses: carabiner-dev/actions/ampel/verify@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/binary'
@@ -55,7 +55,7 @@ its attestations against a policy.
 **Verification with custom attestations:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.1.2
+- uses: carabiner-dev/actions/ampel/verify@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     policy: '.ampel/policy.yaml'
     subject: 'sha256:abc123...'
@@ -67,7 +67,7 @@ its attestations against a policy.
 **Verification with attestation push:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.1.2
+- uses: carabiner-dev/actions/ampel/verify@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -80,7 +80,7 @@ its attestations against a policy.
 **Verification without failing the workflow:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@v1.1.2
+- uses: carabiner-dev/actions/ampel/verify@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -98,7 +98,7 @@ codebase IDs.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom@main
+- uses: carabiner-dev/actions/unpack/sbom@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     ecosystems: |
       golang
