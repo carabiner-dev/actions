@@ -32,10 +32,10 @@ used internally by `go/check-latest` and `go/check-previous`.
 ```yaml
 - name: Resolve Go versions
   id: go-versions
-  uses: carabiner-dev/actions/go/versions@main
+  uses: carabiner-dev/actions/go/versions@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
 
 - name: Set up Go
-  uses: actions/setup-go@v5
+  uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
   with:
     go-version: ${{ steps.go-versions.outputs.GO_VERSION_STABLE }}
 ```
@@ -55,13 +55,13 @@ doesn't match.
 ### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-latest@main
+- uses: carabiner-dev/actions/go/check-latest@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
 ```
 
 With a custom go.mod path:
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-latest@main
+- uses: carabiner-dev/actions/go/check-latest@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     go-mod-path: 'src/go.mod'
 ```
@@ -89,7 +89,7 @@ error message if the version doesn't match.
 ### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-previous@main
+- uses: carabiner-dev/actions/go/check-previous@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
 ```
 
 On failure, the action produces an error like:
@@ -111,9 +111,9 @@ jobs:
     outputs:
       go-versions: ${{ steps.matrix.outputs.go-versions }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: go-versions
-        uses: carabiner-dev/actions/go/versions@main
+        uses: carabiner-dev/actions/go/versions@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
       - id: matrix
         run: |
           echo "go-versions=[\"${{ steps.go-versions.outputs.GO_VERSION_STABLE }}\",\"${{ steps.go-versions.outputs.GO_VERSION_PREVIOUS }}\"]" >> "$GITHUB_OUTPUT"
@@ -125,8 +125,8 @@ jobs:
         go-version: ${{ fromJSON(needs.resolve.outputs.go-versions) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version: ${{ matrix.go-version }}
       - run: go test ./...

@@ -29,9 +29,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - run: make build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: my-binary
           path: ./bin/my-binary
@@ -43,7 +43,7 @@ jobs:
       contents: read
       actions: read      # Read run metadata and artifacts
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@main
+      - uses: carabiner-dev/actions/slsa/generate@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
 ```
 
 ### Watch specific jobs
@@ -53,7 +53,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - run: make build
 
   integration-tests:
@@ -69,7 +69,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@main
+      - uses: carabiner-dev/actions/slsa/generate@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
         with:
           watch-jobs: "build, integration-tests"
 ```
@@ -84,7 +84,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@main
+      - uses: carabiner-dev/actions/slsa/generate@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
         with:
           artifacts: "oci://ghcr.io/my-org/my-image"
           dependencies: "git+https://github.com/my-org/my-lib@abc123def"
