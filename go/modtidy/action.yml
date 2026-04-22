@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: go-modtidy
+author: carabiner-dev
+description: >
+  Runs `go mod tidy` and fails if go.mod or go.sum would change.
+  Assumes Go is already installed on the runner.
+
+inputs:
+  working-directory:
+    description: 'Directory in which to run go mod tidy (default: repo root)'
+    required: false
+    default: '.'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run go mod tidy and check for diff
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        if ! command -v go >/dev/null 2>&1; then
+          echo "::error::go is not installed on this runner. Set up Go before calling this action (e.g. actions/setup-go)."
+          exit 1
+        fi
+
+        for f in go.mod go.sum; do
+          if [ ! -f "$f" ]; then
+            echo "::error::$f not found in $(pwd)"
+            exit 1
+          fi
+        done
+
+        go mod tidy
+
+        if ! git diff --exit-code -- go.mod go.sum; then
+          echo "::error::go.mod or go.sum is not tidy. Run 'go mod tidy' locally and commit the result."
+          exit 1
+        fi
+
+        echo "go.mod and go.sum are tidy."
