@@ -99,6 +99,42 @@ go.mod is using Go 1.24.5 but the previous supported release is Go 1.25.8.
 Please update go.mod to Go 1.25.8.
 ```
 
+## go/modtidy
+
+Runs `go mod tidy` and fails if `go.mod` or `go.sum` would change. Useful as a
+CI check to ensure committed module files stay in sync with the source. Assumes
+Go is already installed on the runner (e.g. via `actions/setup-go`).
+
+### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `working-directory` | No | `.` | Directory in which to run `go mod tidy` |
+
+### Usage
+
+```yaml
+- uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+  with:
+    go-version-file: 'go.mod'
+
+- uses: carabiner-dev/actions/go/modtidy@main
+```
+
+With a custom working directory:
+
+```yaml
+- uses: carabiner-dev/actions/go/modtidy@main
+  with:
+    working-directory: 'src'
+```
+
+On failure, the action prints the diff and an error like:
+
+```
+go.mod or go.sum is not tidy. Run 'go mod tidy' locally and commit the result.
+```
+
 ## Building a Version Matrix
 
 The `go/versions` action is useful for building CI matrices that test against
