@@ -118,13 +118,13 @@ Go is already installed on the runner (e.g. via `actions/setup-go`).
   with:
     go-version-file: 'go.mod'
 
-- uses: carabiner-dev/actions/go/modtidy@main
+- uses: carabiner-dev/actions/go/modtidy@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
 ```
 
 With a custom working directory:
 
 ```yaml
-- uses: carabiner-dev/actions/go/modtidy@main
+- uses: carabiner-dev/actions/go/modtidy@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
   with:
     working-directory: 'src'
 ```
