@@ -32,12 +32,35 @@ inputs:
     description: 'Name of the attestation file in the release'
     required: false
     default: 'attestations.jsonl'
+  policy:
+    description: >
+      Ampel policy locator (VCS locator or path) used by `ampel verify`.
+      Defaults to a pinned revision of the carabiner-dev policies repo's
+      slsa-build-point policy.
+    required: false
+    default: 'git+https://github.com/carabiner-dev/policies@eed2d09ac2a7f8f5238a24b30492e378d8d77ad3#slsa/slsa-build-point.json'
+  context:
+    description: >
+      Newline-separated context values passed to `ampel verify` as `-x KEY:VALUE`.
+      When empty, the action injects `buildPoint:git+ssh://github.com/carabiner-dev/<repo>`
+      derived from the download location, matching the URI scheme used in the
+      `resolvedDependencies` of carabiner-dev SLSA provenances.
+    required: false
+    default: ''
+  signers:
+    description: >
+      Newline-separated signer identity specs passed to `ampel verify` as `--signer SPEC`.
+      When empty, the action injects a sigstore regexp spec pinned to the
+      `<repo>/.github/workflows/release.yaml` workflow under carabiner-dev,
+      with the tag left as a regex wildcard.
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
       - name: Bootstrap trusted ampel
         if: inputs.verify == 'true'
-        uses: carabiner-dev/actions/install/ampel-bootstrap@360ffa1eb909b0105d4eccb6d6ef337911c34952 # v1.1.6
+        uses: carabiner-dev/actions/install/ampel-bootstrap@0a075bb75a68646d05f99c85cbbf2be40dd8e442 # bootstrap rotated to ampel v1.2.1
         id: bootstrap
 
       - name: Detect platform
@@ -85,12 +108,38 @@ runs:
       - name: Verify ${{ inputs.tool }} binary
         if: inputs.verify == 'true'
         shell: bash
+        env:
+          CONTEXT_INPUT: ${{ inputs.context }}
+          SIGNERS_INPUT: ${{ inputs.signers }}
+          DEFAULT_BUILD_POINT: git+ssh://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}
+          DEFAULT_SIGNER: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/carabiner-dev/${{ steps.platform.outputs.repo }}/\.github/workflows/release\.yaml@refs/tags/[^/]+'
         run: |
           echo "::group::Verify ${{ inputs.tool }} ${{ inputs.version }}"
-          ${{ steps.bootstrap.outputs.ampel-path }} verify \
-            --subject="${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}" \
-            --collector="https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ inputs.attestation-file }}" \
-            --policy="git+https://github.com/carabiner-dev/policies#slsa/slsa-build-point.json"
+
+          args=(verify)
+          args+=(--subject="${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}")
+          args+=(--collector="https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ inputs.attestation-file }}")
+          args+=(--policy="${{ inputs.policy }}")
+
+          if [ -n "$CONTEXT_INPUT" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              args+=(-x "$line")
+            done <<< "$CONTEXT_INPUT"
+          else
+            args+=(-x "buildPoint:$DEFAULT_BUILD_POINT")
+          fi
+
+          if [ -n "$SIGNERS_INPUT" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              args+=(--signer "$line")
+            done <<< "$SIGNERS_INPUT"
+          else
+            args+=(--signer "$DEFAULT_SIGNER")
+          fi
+
+          "${{ steps.bootstrap.outputs.ampel-path }}" "${args[@]}"
           echo "::endgroup::"
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
