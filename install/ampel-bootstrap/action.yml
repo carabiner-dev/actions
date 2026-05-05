@@ -50,14 +50,14 @@ runs:
           ext=".exe"
         fi
 
-        echo "filename=ampel-v1.1.3-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+        echo "filename=ampel-v1.2.1-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
         echo "ext=${ext}" >> "$GITHUB_OUTPUT"
 
     - name: Download and verify bootstrap ampel
       id: bootstrap
       shell: bash
       run: |
-        BOOTSTRAP_VERSION="v1.1.3"
+        BOOTSTRAP_VERSION="v1.2.1"
         BOOTSTRAP_DIR=$(mktemp -d)
         BINARY="${BOOTSTRAP_DIR}/ampel${{ steps.platform.outputs.ext }}"
 
@@ -81,14 +81,14 @@ runs:
         # These hashes are the trust root. They MUST be updated when rotating
         # the bootstrap version.
         case "${{ steps.platform.outputs.filename }}" in
-          ampel-v1.1.3-darwin-arm64)
-            EXPECTED="9de2602b7062dbfab52b7448c4b28476639233029c22eaaee3f27688c137d02c" ;;
-          ampel-v1.1.3-linux-amd64)
-            EXPECTED="f9bf25bc555894ef05ef49203b688e9c34912e49f4585ea96a9b60b56d3f600e" ;;
-          ampel-v1.1.3-linux-arm64)
-            EXPECTED="65ac53f51d830e87571b6dcfa1df616b56684192259e5ddea6aa9faa1807a888" ;;
-          ampel-v1.1.3-windows-amd64.exe)
-            EXPECTED="afd48f6a500bdf5e89aadc51eb31a53893dd25a5591f4ab401691f25b016ac6e" ;;
+          ampel-v1.2.1-darwin-arm64)
+            EXPECTED="469339770fd059c655fa2205d11ea6658314bf43417a6b28b4e95229ce56e082" ;;
+          ampel-v1.2.1-linux-amd64)
+            EXPECTED="20cde18ee875a2fad1c518318b8941834975e5112eb6924d53bdb56f1582f93f" ;;
+          ampel-v1.2.1-linux-arm64)
+            EXPECTED="5de52a3d212f3d9426602013839cd20c6df85c41de5c382aaea9d86034949e89" ;;
+          ampel-v1.2.1-windows-amd64.exe)
+            EXPECTED="f4c94dfb49339b169af8faa9f176bb28fa7ce61c5ae8fa2a40ec67904d8d151a" ;;
           *)
             echo "::error::No hardcoded hash for platform: ${{ steps.platform.outputs.filename }}"
             exit 1 ;;
