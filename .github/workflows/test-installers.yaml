@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-latest, windows-latest]
-        tool: [ampel-bootstrap, ampel, bnd, beaker, revex, snappy, unpack]
+        tool: [ampel-bootstrap, ampel, bnd, beaker, revex, snappy, unpack, policyctl]
         exclude:
           # beaker has no Windows binary
           - runner: windows-latest
@@ -39,6 +39,8 @@ jobs:
         uses: ./install/snappy
       - if: matrix.tool == 'unpack'
         uses: ./install/unpack
+      - if: matrix.tool == 'policyctl'
+        uses: ./install/policyctl
 
       - if: matrix.tool == 'ampel-bootstrap'
         name: Verify bootstrap binary runs

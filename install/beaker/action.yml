@@ -1,13 +1,9 @@
-# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
 # SPDX-License-Identifier: Apache-2.0
-
-# [!] Build notice:
-# Note that this installer curls the beaker linux binary. This
-# will replaced with a verified installer soon.
 
 name: setup beaker
 author: carabiner-dev
-description: 'Installs the Carabiner beaker attester into to the runner environment'
+description: 'Installs the Carabiner beaker test attester into the runner environment'
 branding:
   icon: 'download-cloud'
   color: 'green'
@@ -19,43 +15,17 @@ inputs:
   version:
     description: 'beaker version to install'
     required: false
-    default: 'v0.1.1'
+    default: 'v0.1.2'
 runs:
   using: "composite"
   steps:
-      - name: Detect platform
-        id: platform
-        shell: bash
-        run: |
-          OS="${{ runner.os }}"
-          ARCH="${{ runner.arch }}"
-
-          case "$OS" in
-            Linux)  os="linux" ;;
-            macOS)  os="darwin" ;;
-            Windows) echo "::error::beaker does not have a Windows binary"; exit 1 ;;
-            *) echo "::error::Unsupported OS: $OS"; exit 1 ;;
-          esac
-
-          case "$ARCH" in
-            X64)   arch="amd64" ;;
-            ARM64) arch="arm64" ;;
-            *) echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
-          esac
-
-          echo "filename=beaker-${{ inputs.version }}-${os}-${arch}" >> "$GITHUB_OUTPUT"
-
-      - name: Install beaker
-        shell: bash
-        run: |
-          mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -Lo ${{ inputs.install-dir }}/bin/beaker https://github.com/carabiner-dev/beaker/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}
-          chmod 0755 ${{ inputs.install-dir }}/bin/beaker
-
-      - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
-        shell: bash
-
-      - shell: bash
-        run: beaker version
-  
+    - if: ${{ runner.os == 'Windows' }}
+      shell: bash
+      run: |
+        echo "::error::beaker does not have a Windows binary"
+        exit 1
+    - uses: carabiner-dev/actions/install/download-and-verify@6022a065d6420de5d86333ecfb2b25c57f84b699
+      with:
+        tool: beaker
+        version: ${{ inputs.version }}
+        install-dir: ${{ inputs.install-dir }}
