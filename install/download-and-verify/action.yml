@@ -60,7 +60,7 @@ runs:
   steps:
       - name: Bootstrap trusted ampel
         if: inputs.verify == 'true'
-        uses: carabiner-dev/actions/install/ampel-bootstrap@0a075bb75a68646d05f99c85cbbf2be40dd8e442 # bootstrap rotated to ampel v1.2.1
+        uses: carabiner-dev/actions/install/ampel-bootstrap@2a11d59a135c5e291f305f249a92ad7903e3ee0f # v1.1.7
         id: bootstrap
 
       - name: Detect platform
