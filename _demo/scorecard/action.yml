@@ -3,7 +3,7 @@
 
 # [!] Build notice:
 # Note that this installer downloads and builds vexflow at head. This
-# will replaced with a verified installer soon.
+# will be replaced with a verified installer soon.
 
 name: setup scorecard from source
 author: carabiner-dev
