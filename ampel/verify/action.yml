@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
 # SPDX-License-Identifier: Apache-2.0
 ---
+# Optional --key/--context flags are built as bash arrays for safe quoting.
 name: 'Verify Policy'
 author: "carabiner-dev"
 description: 'Verifies a subject against a policy'
@@ -67,50 +68,65 @@ runs:
     - id: attest-check
       shell: bash
       run: |
-        ATTEST="${{ inputs.attest }}"
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+        ATTEST="${INPUTS_ATTEST}"
+        if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
           echo "::notice::Attestation disabled: no token available for workflow_dispatch events"
           ATTEST="false"
         fi
         echo "attest=${ATTEST}" >> "$GITHUB_OUTPUT"
+      env:
+        INPUTS_ATTEST: ${{ inputs.attest }}
 
     - id: verify
       shell: bash
       run: |
-        KEY_FLAGS=""
-        CONTEXT_FLAGS=""
+        key_flags=()
+        ctx_flags=()
 
-        if [ -n "${{ inputs.context }}" ]; then
-          CONTEXT_FLAGS="--context \"${{ inputs.context }}\""
+        if [ -n "${INPUTS_CONTEXT}" ]; then
+          ctx_flags=(--context "${INPUTS_CONTEXT}")
         fi
 
-        if [ -n "${{ inputs.key }}" ]; then
-          KEY_FLAGS="--key=${{ inputs.key }}"
+        if [ -n "${INPUTS_KEY}" ]; then
+          key_flags+=(--key="${INPUTS_KEY}")
         fi
 
-        if [ -n "${{ inputs.keydata }}" ]; then
+        if [ -n "${INPUTS_KEYDATA}" ]; then
           KEYDATA_FILE=$(mktemp)
-          printf '%s\n' '${{ inputs.keydata }}' > "${KEYDATA_FILE}"
-          KEY_FLAGS="${KEY_FLAGS} --key=${KEYDATA_FILE}"
+          printf '%s\n' "${INPUTS_KEYDATA}" > "${KEYDATA_FILE}"
+          key_flags+=(--key="${KEYDATA_FILE}")
         fi
 
         ampel verify \
-          --subject="${{ inputs.subject }}" \
-          --collector="${{ inputs.collector }}" \
-          --policy="${{ inputs.policy }}" \
-          --exit-code="${{ inputs.fail }}" \
-          --attest-results="${{ steps.attest-check.outputs.attest }}" \
-          --attest-format="${{ inputs.attest-format }}" \
-          --results-path="${{ inputs.results-path }}" \
-          --attestation="${{ inputs.attestation }}" \
-          --signer="${{ inputs.signer }}" \
-          ${KEY_FLAGS} \
-          ${CONTEXT_FLAGS} \
-          --format="html" >> $GITHUB_STEP_SUMMARY
+          --subject="${INPUTS_SUBJECT}" \
+          --collector="${INPUTS_COLLECTOR}" \
+          --policy="${INPUTS_POLICY}" \
+          --exit-code="${INPUTS_FAIL}" \
+          --attest-results="${STEPS_ATTEST_CHECK_OUTPUTS_ATTEST}" \
+          --attest-format="${INPUTS_ATTEST_FORMAT}" \
+          --results-path="${INPUTS_RESULTS_PATH}" \
+          --attestation="${INPUTS_ATTESTATION}" \
+          --signer="${INPUTS_SIGNER}" \
+          "${key_flags[@]}" \
+          "${ctx_flags[@]}" \
+          --format="html" >> "$GITHUB_STEP_SUMMARY"
 
         if [ -n "${KEYDATA_FILE:-}" ]; then
           rm -f "${KEYDATA_FILE}"
         fi
+      env:
+        INPUTS_CONTEXT: ${{ inputs.context }}
+        INPUTS_KEY: ${{ inputs.key }}
+        INPUTS_KEYDATA: ${{ inputs.keydata }}
+        INPUTS_SUBJECT: ${{ inputs.subject }}
+        INPUTS_COLLECTOR: ${{ inputs.collector }}
+        INPUTS_POLICY: ${{ inputs.policy }}
+        INPUTS_FAIL: ${{ inputs.fail }}
+        STEPS_ATTEST_CHECK_OUTPUTS_ATTEST: ${{ steps.attest-check.outputs.attest }}
+        INPUTS_ATTEST_FORMAT: ${{ inputs.attest-format }}
+        INPUTS_RESULTS_PATH: ${{ inputs.results-path }}
+        INPUTS_ATTESTATION: ${{ inputs.attestation }}
+        INPUTS_SIGNER: ${{ inputs.signer }}
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: Setup bnd
@@ -120,8 +136,10 @@ runs:
       name: sign-ampel-results
       shell: bash
       run: |
-        mv ${{ inputs.results-path }} ${{ inputs.results-path }}.tmp
-        bnd statement ${{ inputs.results-path }}.tmp >> ${{ inputs.results-path }}
+        mv "${INPUTS_RESULTS_PATH}" "${INPUTS_RESULTS_PATH}.tmp"
+        bnd statement "${INPUTS_RESULTS_PATH}.tmp" >> "${INPUTS_RESULTS_PATH}"
+      env:
+        INPUTS_RESULTS_PATH: ${{ inputs.results-path }}
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' && inputs.push-attestation == 'true' }}
       name: Push attestation to artifacts

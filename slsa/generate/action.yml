@@ -79,32 +79,39 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        STEPS_BUILD_TEJOLOTE_OUTPUTS_BIN: ${{ steps.build-tejolote.outputs.bin }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
+        INPUTS_SLSA_VERSION: ${{ inputs.slsa-version }}
+        INPUTS_SIGN: ${{ inputs.sign }}
+        INPUTS_WATCH_JOBS: ${{ inputs.watch-jobs }}
+        INPUTS_ARTIFACTS: ${{ inputs.artifacts }}
+        INPUTS_DEPENDENCIES: ${{ inputs.dependencies }}
       run: |
         set -euo pipefail
 
-        TEJOLOTE="${{ steps.build-tejolote.outputs.bin }}"
+        TEJOLOTE="${STEPS_BUILD_TEJOLOTE_OUTPUTS_BIN}"
         SPEC_URL="github://${{ github.repository }}/${{ github.run_id }}"
-        OUTPUT="${{ inputs.output }}"
+        OUTPUT="${INPUTS_OUTPUT}"
 
         ARGS=(
           "$SPEC_URL"
-          --slsa="${{ inputs.slsa-version }}"
+          --slsa="${INPUTS_SLSA_VERSION}"
           --output="$OUTPUT"
         )
 
         # Signing
-        if [[ "${{ inputs.sign }}" == "true" ]]; then
+        if [[ "${INPUTS_SIGN}" == "true" ]]; then
           ARGS+=(--sign)
         fi
 
         # Watch specific jobs if specified
-        if [[ -n "${{ inputs.watch-jobs }}" ]]; then
-          ARGS+=(--watch-jobs="${{ inputs.watch-jobs }}")
+        if [[ -n "${INPUTS_WATCH_JOBS}" ]]; then
+          ARGS+=(--watch-jobs="${INPUTS_WATCH_JOBS}")
         fi
 
         # Additional artifact sources
-        if [[ -n "${{ inputs.artifacts }}" ]]; then
-          IFS=',' read -ra ARTIFACT_URIS <<< "${{ inputs.artifacts }}"
+        if [[ -n "${INPUTS_ARTIFACTS}" ]]; then
+          IFS=',' read -ra ARTIFACT_URIS <<< "${INPUTS_ARTIFACTS}"
           for uri in "${ARTIFACT_URIS[@]}"; do
             uri=$(echo "$uri" | xargs)  # trim whitespace
             if [[ -n "$uri" ]]; then
@@ -114,8 +121,8 @@ runs:
         fi
 
         # Additional dependencies
-        if [[ -n "${{ inputs.dependencies }}" ]]; then
-          IFS=',' read -ra DEP_URIS <<< "${{ inputs.dependencies }}"
+        if [[ -n "${INPUTS_DEPENDENCIES}" ]]; then
+          IFS=',' read -ra DEP_URIS <<< "${INPUTS_DEPENDENCIES}"
           for uri in "${DEP_URIS[@]}"; do
             uri=$(echo "$uri" | xargs)
             if [[ -n "$uri" ]]; then

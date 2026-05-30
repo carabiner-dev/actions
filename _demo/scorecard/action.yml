@@ -37,17 +37,23 @@ runs:
       - name: Build
         shell: bash
         run: |
-          mkdir -p ${{ inputs.install-dir }}/bin || :
-          cd .build/scorecard && go build -o ${{ inputs.install-dir }}/bin/scorecard .
+          mkdir -p ${INPUTS_INSTALL_DIR}/bin || :
+          cd .build/scorecard && go build -o ${INPUTS_INSTALL_DIR}/bin/scorecard .
           cd - 
           rm -rf .build/scorecard
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH
         shell: bash
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "${INPUTS_INSTALL_DIR}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         shell: bash
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       
       - shell: bash
         run: scorecard version

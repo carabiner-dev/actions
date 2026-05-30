@@ -37,18 +37,25 @@ runs:
       shell: bash
       run: |
         beaker run \
-          --dir="${{ inputs.dir }}" \
-          --output="${{ inputs.output }}.tmp"
+          --dir="${INPUTS_DIR}" \
+          --output="${INPUTS_OUTPUT}.tmp"
+      env:
+        INPUTS_DIR: ${{ inputs.dir }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
 
     - if: ${{ inputs.sign == 'true' }}
       id: "sign-attestation"
       shell: bash
       run: |
-        bnd statement --out="${{ inputs.output }}" "${{ inputs.output }}.tmp"
-        rm "${{ inputs.output }}.tmp"
+        bnd statement --out="${INPUTS_OUTPUT}" "${INPUTS_OUTPUT}.tmp"
+        rm "${INPUTS_OUTPUT}.tmp"
+      env:
+        INPUTS_OUTPUT: ${{ inputs.output }}
 
     - if: ${{ inputs.sign != 'true' }}
       id: "set-attestation-name"
       shell: bash
       run: |
-        mv "${{ inputs.output }}.tmp" "${{ inputs.output }}"
+        mv "${INPUTS_OUTPUT}.tmp" "${INPUTS_OUTPUT}"
+      env:
+        INPUTS_OUTPUT: ${{ inputs.output }}

@@ -27,8 +27,8 @@ runs:
       run: |
         set -euo pipefail
 
-        PROJECT="${{ steps.versions.outputs.GO_VERSION_PROJECT }}"
-        PREVIOUS="${{ steps.versions.outputs.GO_VERSION_PREVIOUS }}"
+        PROJECT="${STEPS_VERSIONS_OUTPUTS_GO_VERSION_PROJECT}"
+        PREVIOUS="${STEPS_VERSIONS_OUTPUTS_GO_VERSION_PREVIOUS}"
 
         echo "Project go.mod version:       ${PROJECT}"
         echo "Previous supported version:   ${PREVIOUS}"
@@ -39,3 +39,6 @@ runs:
         fi
 
         echo "go.mod is up to date with the previous supported Go release (${PREVIOUS})."
+      env:
+        STEPS_VERSIONS_OUTPUTS_GO_VERSION_PROJECT: ${{ steps.versions.outputs.GO_VERSION_PROJECT }}
+        STEPS_VERSIONS_OUTPUTS_GO_VERSION_PREVIOUS: ${{ steps.versions.outputs.GO_VERSION_PREVIOUS }}

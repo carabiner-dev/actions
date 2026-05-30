@@ -27,8 +27,8 @@ runs:
       run: |
         set -euo pipefail
 
-        PROJECT="${{ steps.versions.outputs.GO_VERSION_PROJECT }}"
-        STABLE="${{ steps.versions.outputs.GO_VERSION_STABLE }}"
+        PROJECT="${STEPS_VERSIONS_OUTPUTS_GO_VERSION_PROJECT}"
+        STABLE="${STEPS_VERSIONS_OUTPUTS_GO_VERSION_STABLE}"
 
         echo "Project go.mod version: ${PROJECT}"
         echo "Latest stable version:  ${STABLE}"
@@ -39,3 +39,6 @@ runs:
         fi
 
         echo "go.mod is up to date with the latest stable Go release (${STABLE})."
+      env:
+        STEPS_VERSIONS_OUTPUTS_GO_VERSION_PROJECT: ${{ steps.versions.outputs.GO_VERSION_PROJECT }}
+        STEPS_VERSIONS_OUTPUTS_GO_VERSION_STABLE: ${{ steps.versions.outputs.GO_VERSION_STABLE }}
