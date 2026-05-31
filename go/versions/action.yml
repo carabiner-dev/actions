@@ -43,7 +43,7 @@ runs:
         set -euo pipefail
 
         # --- Project version from go.mod ---
-        GOMOD="${{ inputs.go-mod-path }}"
+        GOMOD="${INPUTS_GO_MOD_PATH}"
         if [ ! -f "$GOMOD" ]; then
           echo "::error::go.mod not found at $GOMOD"
           exit 1
@@ -109,3 +109,5 @@ runs:
         echo "Go version (project):  ${GO_VERSION_PROJECT} (minor: ${GO_MINOR_VERSION_PROJECT})"
         echo "Go version (stable):   ${GO_VERSION_STABLE} (minor: ${GO_MINOR_VERSION_STABLE})"
         echo "Go version (previous): ${GO_VERSION_PREVIOUS} (minor: ${GO_MINOR_VERSION_PREVIOUS})"
+      env:
+        INPUTS_GO_MOD_PATH: ${{ inputs.go-mod-path }}

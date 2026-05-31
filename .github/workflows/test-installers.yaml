@@ -45,7 +45,9 @@ jobs:
       - if: matrix.tool == 'ampel-bootstrap'
         name: Verify bootstrap binary runs
         shell: bash
-        run: ${{ steps.bootstrap.outputs.ampel-path }} version
+        run: ${STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH} version
+        env:
+          STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH: ${{ steps.bootstrap.outputs.ampel-path }}
 
       - if: matrix.tool != 'ampel-bootstrap'
         name: Verify binary runs

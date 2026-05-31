@@ -49,33 +49,44 @@ runs:
       if: ${{ inputs.is-predicate == 'true' }}
       shell: bash
       run: |
-        if [ -z "${{ inputs.subject }}" ]; then
+        if [ -z "${INPUTS_SUBJECT}" ]; then
           echo "::error::subject is required when is-predicate is true"
           exit 1
         fi
-        if [ -z "${{ inputs.predicate-type }}" ]; then
+        if [ -z "${INPUTS_PREDICATE_TYPE}" ]; then
           echo "::error::predicate-type is required when is-predicate is true"
           exit 1
         fi
+      env:
+        INPUTS_SUBJECT: ${{ inputs.subject }}
+        INPUTS_PREDICATE_TYPE: ${{ inputs.predicate-type }}
 
     - name: Sign statement
       if: ${{ inputs.is-predicate != 'true' }}
       shell: bash
       run: |
-        ATTESTATION=$(bnd statement "${{ inputs.json-path }}")
-        if [ -f "${{ inputs.output }}" ]; then
-          echo "$ATTESTATION" >> "${{ inputs.output }}"
+        ATTESTATION=$(bnd statement "${INPUTS_JSON_PATH}")
+        if [ -f "${INPUTS_OUTPUT}" ]; then
+          echo "$ATTESTATION" >> "${INPUTS_OUTPUT}"
         else
-          echo "$ATTESTATION" > "${{ inputs.output }}"
+          echo "$ATTESTATION" > "${INPUTS_OUTPUT}"
         fi
+      env:
+        INPUTS_JSON_PATH: ${{ inputs.json-path }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
 
     - name: Sign predicate
       if: ${{ inputs.is-predicate == 'true' }}
       shell: bash
       run: |
-        ATTESTATION=$(bnd predicate --subject="${{ inputs.subject }}" --type="${{ inputs.predicate-type }}" "${{ inputs.json-path }}")
-        if [ -f "${{ inputs.output }}" ]; then
-          echo "$ATTESTATION" >> "${{ inputs.output }}"
+        ATTESTATION=$(bnd predicate --subject="${INPUTS_SUBJECT}" --type="${INPUTS_PREDICATE_TYPE}" "${INPUTS_JSON_PATH}")
+        if [ -f "${INPUTS_OUTPUT}" ]; then
+          echo "$ATTESTATION" >> "${INPUTS_OUTPUT}"
         else
-          echo "$ATTESTATION" > "${{ inputs.output }}"
+          echo "$ATTESTATION" > "${INPUTS_OUTPUT}"
         fi
+      env:
+        INPUTS_SUBJECT: ${{ inputs.subject }}
+        INPUTS_PREDICATE_TYPE: ${{ inputs.predicate-type }}
+        INPUTS_JSON_PATH: ${{ inputs.json-path }}
+        INPUTS_OUTPUT: ${{ inputs.output }}

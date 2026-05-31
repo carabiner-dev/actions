@@ -88,22 +88,33 @@ runs:
             ext=".exe"
           fi
 
-          REPO="${{ inputs.repo }}"
+          REPO="${INPUTS_REPO}"
           if [ -z "$REPO" ]; then
-            REPO="${{ inputs.tool }}"
+            REPO="${INPUTS_TOOL}"
           fi
 
-          echo "filename=${{ inputs.tool }}-${{ inputs.version }}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+          echo "filename=${INPUTS_TOOL}-${INPUTS_VERSION}-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
           echo "ext=${ext}" >> "$GITHUB_OUTPUT"
           echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+        env:
+          INPUTS_REPO: ${{ inputs.repo }}
+          INPUTS_TOOL: ${{ inputs.tool }}
+          INPUTS_VERSION: ${{ inputs.version }}
 
       - name: Install ${{ inputs.tool }}
         shell: bash
         run: |
-          mkdir -p ${{ inputs.install-dir }}/bin || :
-          curl -sSfL -o ${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }} \
-            "https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ steps.platform.outputs.filename }}"
-          chmod 0755 ${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}
+          mkdir -p ${INPUTS_INSTALL_DIR}/bin || :
+          curl -sSfL -o ${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT} \
+            "https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
+          chmod 0755 ${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+          INPUTS_TOOL: ${{ inputs.tool }}
+          STEPS_PLATFORM_OUTPUTS_EXT: ${{ steps.platform.outputs.ext }}
+          STEPS_PLATFORM_OUTPUTS_REPO: ${{ steps.platform.outputs.repo }}
+          INPUTS_VERSION: ${{ inputs.version }}
+          STEPS_PLATFORM_OUTPUTS_FILENAME: ${{ steps.platform.outputs.filename }}
 
       - name: Verify ${{ inputs.tool }} binary
         if: inputs.verify == 'true'
@@ -113,13 +124,21 @@ runs:
           SIGNERS_INPUT: ${{ inputs.signers }}
           DEFAULT_BUILD_POINT: git+ssh://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}
           DEFAULT_SIGNER: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/carabiner-dev/${{ steps.platform.outputs.repo }}/\.github/workflows/release\.yaml@refs/tags/[^/]+'
+          INPUTS_TOOL: ${{ inputs.tool }}
+          INPUTS_VERSION: ${{ inputs.version }}
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+          STEPS_PLATFORM_OUTPUTS_EXT: ${{ steps.platform.outputs.ext }}
+          STEPS_PLATFORM_OUTPUTS_REPO: ${{ steps.platform.outputs.repo }}
+          INPUTS_ATTESTATION_FILE: ${{ inputs.attestation-file }}
+          INPUTS_POLICY: ${{ inputs.policy }}
+          STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH: ${{ steps.bootstrap.outputs.ampel-path }}
         run: |
-          echo "::group::Verify ${{ inputs.tool }} ${{ inputs.version }}"
+          echo "::group::Verify ${INPUTS_TOOL} ${INPUTS_VERSION}"
 
           args=(verify)
-          args+=(--subject="${{ inputs.install-dir }}/bin/${{ inputs.tool }}${{ steps.platform.outputs.ext }}")
-          args+=(--collector="https://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}/releases/download/${{ inputs.version }}/${{ inputs.attestation-file }}")
-          args+=(--policy="${{ inputs.policy }}")
+          args+=(--subject="${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
+          args+=(--collector="https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${INPUTS_ATTESTATION_FILE}")
+          args+=(--policy="${INPUTS_POLICY}")
 
           if [ -n "$CONTEXT_INPUT" ]; then
             while IFS= read -r line; do
@@ -139,15 +158,21 @@ runs:
             args+=(--signer "$DEFAULT_SIGNER")
           fi
 
-          "${{ steps.bootstrap.outputs.ampel-path }}" "${args[@]}"
+          "${STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH}" "${args[@]}"
           echo "::endgroup::"
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${{ inputs.install-dir }}/bin" >> $GITHUB_PATH
+        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH
         shell: bash
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "${{ inputs.install-dir }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "$env:INPUTS_INSTALL_DIR/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         shell: pwsh
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
 
       - shell: bash
-        run: ${{ inputs.tool }} version
+        run: ${INPUTS_TOOL} version
+        env:
+          INPUTS_TOOL: ${{ inputs.tool }}
