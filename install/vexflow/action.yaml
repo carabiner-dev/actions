@@ -19,6 +19,18 @@ inputs:
 runs:
   using: "composite"
   steps:
+      - name: Validate install-dir
+        shell: bash
+        run: |
+          case "$INPUTS_INSTALL_DIR" in
+            ''|*[!A-Za-z0-9._/\$~-]*)
+              echo "::error::install-dir must be non-empty and contain only [A-Za-z0-9._/\$~-]; got: $INPUTS_INSTALL_DIR"
+              exit 1
+              ;;
+          esac
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+
       # - name: Checkout code
       #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       #   with:
@@ -50,12 +62,12 @@ runs:
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH
+        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
         shell: bash
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "${INPUTS_INSTALL_DIR}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "${INPUTS_INSTALL_DIR}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append # zizmor: ignore[github-env] install-dir validated upstream
         shell: bash
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
