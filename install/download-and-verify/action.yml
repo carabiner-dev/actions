@@ -58,6 +58,18 @@ inputs:
 runs:
   using: "composite"
   steps:
+      - name: Validate install-dir
+        shell: bash
+        run: |
+          case "$INPUTS_INSTALL_DIR" in
+            ''|*[!A-Za-z0-9._/\$~-]*)
+              echo "::error::install-dir must be non-empty and contain only [A-Za-z0-9._/\$~-]; got: $INPUTS_INSTALL_DIR"
+              exit 1
+              ;;
+          esac
+        env:
+          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+
       - name: Bootstrap trusted ampel
         if: inputs.verify == 'true'
         uses: carabiner-dev/actions/install/ampel-bootstrap@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
@@ -162,12 +174,12 @@ runs:
           echo "::endgroup::"
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH
+        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
         shell: bash
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "$env:INPUTS_INSTALL_DIR/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "$env:INPUTS_INSTALL_DIR/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append # zizmor: ignore[github-env] install-dir validated upstream
         shell: pwsh
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
