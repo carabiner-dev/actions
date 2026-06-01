@@ -16,7 +16,7 @@ inputs:
     default: '$HOME/.carabiner'
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/carabiner-dev/drop'
+  image: 'docker://ghcr.io/carabiner-dev/drop@sha256:42beb1f44a5d0eca5d740d64364560f38e7af37965c8b73aafdfe2bcff1ae308'
   args:
     - get
     - --insecure=${{ inputs.insecure }}
