@@ -72,7 +72,7 @@ When the CycloneDX format is used, the extension is `.cdx.json` instead of `.spd
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
 ```
 
@@ -80,7 +80,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     with:
       ecosystems: |
@@ -92,7 +92,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     with:
       codebases: |
@@ -104,7 +104,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     with:
       format: cyclonedx
@@ -116,7 +116,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     with:
       ignore: |
@@ -128,7 +128,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     with:
@@ -142,7 +142,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.
+  - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
   - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
     id: sbom
