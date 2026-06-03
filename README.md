@@ -16,7 +16,7 @@ its attestations against a policy.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     policy: 'path/to/policy.yaml'   # URI or path to policy code
     subject: 'path/to/artifact'     # or digest, eg sha256:98349875bf3e09...
@@ -45,7 +45,7 @@ its attestations against a policy.
 **Basic verification:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/binary'
@@ -55,7 +55,7 @@ its attestations against a policy.
 **Verification with custom attestations:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     policy: '.ampel/policy.yaml'
     subject: 'sha256:abc123...'
@@ -67,7 +67,7 @@ its attestations against a policy.
 **Verification with attestation push:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -80,7 +80,7 @@ its attestations against a policy.
 **Verification without failing the workflow:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -98,7 +98,7 @@ codebase IDs.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
   with:
     ecosystems: |
       golang
