@@ -43,7 +43,7 @@ jobs:
       contents: read
       actions: read      # Read run metadata and artifacts
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+      - uses: carabiner-dev/actions/slsa/generate@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
 ```
 
 ### Watch specific jobs
@@ -69,7 +69,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+      - uses: carabiner-dev/actions/slsa/generate@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
         with:
           watch-jobs: "build, integration-tests"
 ```
@@ -84,7 +84,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: carabiner-dev/actions/slsa/generate@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+      - uses: carabiner-dev/actions/slsa/generate@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
         with:
           artifacts: "oci://ghcr.io/my-org/my-image"
           dependencies: "git+https://github.com/my-org/my-lib@abc123def"

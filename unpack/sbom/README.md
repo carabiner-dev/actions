@@ -10,7 +10,7 @@ format.
 ## Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+- uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
 ```
 
 That's it. With no inputs, the action will:
@@ -73,7 +73,7 @@ When the CycloneDX format is used, the extension is `.cdx.json` instead of `.spd
 ```yaml
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
 ```
 
 ### Generate only for Go and npm ecosystems
@@ -81,7 +81,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     with:
       ecosystems: |
         golang
@@ -93,7 +93,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     with:
       codebases: |
         golang:.
@@ -105,7 +105,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     with:
       format: cyclonedx
       files: 'true'
@@ -117,7 +117,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     with:
       ignore: |
         vendor
@@ -130,7 +130,7 @@ steps:
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     with:
       output-path: /tmp
       push-to-release: ${{ steps.tag.outputs.tag_name }}
@@ -144,7 +144,7 @@ steps:
 steps:
   - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-  - uses: carabiner-dev/actions/unpack/sbom@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+  - uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
     id: sbom
     with:
       output-path: sboms/
