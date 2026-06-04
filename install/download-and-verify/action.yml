@@ -72,7 +72,7 @@ runs:
 
       - name: Bootstrap trusted ampel
         if: inputs.verify == 'true'
-        uses: carabiner-dev/actions/install/ampel-bootstrap@e0e3b8149dafed833431095bc148d50e7eade4e8 # v1.2.0
+        uses: carabiner-dev/actions/install/ampel-bootstrap@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
         id: bootstrap
 
       - name: Detect platform
