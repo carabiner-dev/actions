@@ -35,7 +35,7 @@ used internally by `go/check-latest` and `go/check-previous`.
   uses: carabiner-dev/actions/go/versions@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
 
 - name: Set up Go
-  uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+  uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
   with:
     go-version: ${{ steps.go-versions.outputs.GO_VERSION_STABLE }}
 ```
@@ -114,7 +114,7 @@ Go is already installed on the runner (e.g. via `actions/setup-go`).
 ### Usage
 
 ```yaml
-- uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+- uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
   with:
     go-version-file: 'go.mod'
 
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: ${{ matrix.go-version }}
       - run: go test ./...
