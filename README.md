@@ -32,7 +32,7 @@ jobs:
       id-token: write   # required to mint the workflow OIDC token
       contents: read
     steps:
-      - uses: carabiner-dev/actions/login@main # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/login@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1 # pin to a release commit once tagged
       # CARABINER_CREDENTIALS is now set for subsequent steps
 ```
 
