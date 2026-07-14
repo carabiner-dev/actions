@@ -6,6 +6,54 @@ attestation management, and supply chain security workflows.
 
 ## Actions
 
+### login
+
+The `login` action exchanges the workflow's GitHub OIDC identity for a
+short-lived Carabiner token via the Carabiner token exchange server
+(`auth.carabiner.dev` by default). The token is masked and exported as the
+`CARABINER_CREDENTIALS` environment variable so later steps and Carabiner tools
+can use it.
+
+The exchange only succeeds when the repository's GitHub organization is claimed
+as a namespace by a Carabiner organization **and** the repository has a
+monitored pipeline; otherwise no token is issued. The issued token's lifetime is
+paired to the workflow's OIDC token.
+
+#### Usage
+
+The calling job must grant `id-token: write` so the action can mint a workflow
+OIDC token:
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required to mint the workflow OIDC token
+      contents: read
+    steps:
+      - uses: carabiner-dev/actions/login@main # pin to a release commit once tagged
+      # CARABINER_CREDENTIALS is now set for subsequent steps
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `exchange-url` | No | `https://auth.carabiner.dev` | Base URL of the Carabiner token exchange server. The workflow OIDC token is minted for this audience. |
+| `audience` | No | `https://api.carabiner.dev` | Audience (a Carabiner service URL) to request the token for. |
+| `scope` | No | `attestations:read attestations:write` | Space-separated capability scopes to request. The issued token carries the intersection of the requested and granted scopes; set empty for an identity-only token. |
+
+#### Outputs
+
+| Output | Description |
+| --- | --- |
+| `expires-in` | Lifetime of the issued Carabiner token, in seconds. |
+| `scope` | Space-separated scopes granted on the issued token (may be empty). |
+
+See the [login README](login/README.md) for the full flow, security notes, and
+troubleshooting.
+
 ### ampel/verify
 
 The `ampel/verify` action verifies a subject (file or hash) against a security
