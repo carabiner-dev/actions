@@ -20,6 +20,10 @@ inputs:
     description: 'Space-separated capability scopes to request. The issued token carries the intersection of the requested and granted scopes; set empty for an identity-only token.'
     required: false
     default: "attestations:read attestations:write"
+  resource:
+    description: 'Space-separated canonical resource URIs (organization://<handle>, repository://<system>/<owner>/<repo>, stash://<handle>[/<namespace>]) restricting which platform objects the token may act on. All must belong to the repository''s Carabiner organization; empty requests the server default (the whole organization).'
+    required: false
+    default: ""
 outputs:
   expires-in:
     description: 'Lifetime of the issued carabiner token, in seconds'
@@ -64,6 +68,14 @@ runs:
         if [ -n "${requested_scope}" ]; then
           scope_args+=(--data-urlencode "scope=${requested_scope}")
         fi
+        # Resources restrict which platform objects the token may act on.
+        # RFC 8693 takes one resource parameter per URI; empty lets the server
+        # stamp its default (the repository's whole organization).
+        requested_resources="$(printf '%s' "${INPUTS_RESOURCE}" | xargs)"
+        resource_args=()
+        for res in ${requested_resources}; do
+          resource_args+=(--data-urlencode "resource=${res}")
+        done
         response="$(curl -sS -w '\n%{http_code}' \
           -X POST "${INPUTS_EXCHANGE_URL%/}/token" \
           --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
@@ -71,7 +83,8 @@ runs:
           --data-urlencode "subject_token_type=urn:ietf:params:oauth:token-type:jwt" \
           --data-urlencode "requested_token_type=urn:ietf:params:oauth:token-type:jwt" \
           --data-urlencode "audience=${INPUTS_AUDIENCE}" \
-          ${scope_args[@]+"${scope_args[@]}"})" || {
+          ${scope_args[@]+"${scope_args[@]}"} \
+          ${resource_args[@]+"${resource_args[@]}"})" || {
           echo "::error::Could not reach the carabiner token exchange server at ${INPUTS_EXCHANGE_URL}"
           exit 1
         }
@@ -82,7 +95,10 @@ runs:
           err="$(printf '%s' "${body}" | jq -r '.error // empty' 2>/dev/null || true)"
           desc="$(printf '%s' "${body}" | jq -r '.error_description // .error // "unknown error"' 2>/dev/null || echo "unknown error")"
           if [ "${err}" = "invalid_scope" ]; then
-            desc="${desc} None of the requested scopes are granted to this repository — an organization admin can grant them in Carabiner."
+            case "${desc}" in
+              *resource*) desc="${desc} Requested resources must belong to the repository's Carabiner organization." ;;
+              *) desc="${desc} None of the requested scopes are granted to this repository — an organization admin can grant them in Carabiner." ;;
+            esac
           fi
           echo "::error::Token exchange was refused (HTTP ${http_code}): ${desc}"
           exit 1
@@ -120,3 +136,4 @@ runs:
         INPUTS_EXCHANGE_URL: ${{ inputs.exchange-url }}
         INPUTS_AUDIENCE: ${{ inputs.audience }}
         INPUTS_SCOPE: ${{ inputs.scope }}
+        INPUTS_RESOURCE: ${{ inputs.resource }}
