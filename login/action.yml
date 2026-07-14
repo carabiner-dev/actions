@@ -33,7 +33,7 @@ runs:
     - id: login
       name: 🔑 Carabiner Login
       shell: bash
-      run: |
+      run: | # zizmor: ignore[github-env] the value written is validated as a single-line JWT and masked
         set -euo pipefail
 
         if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
@@ -91,6 +91,14 @@ runs:
         token="$(printf '%s' "${body}" | jq -r '.access_token // empty' 2>/dev/null || true)"
         if [ -z "${token}" ]; then
           echo "::error::Token exchange succeeded but returned no access token"
+          exit 1
+        fi
+        # The token is written to GITHUB_ENV below: require a compact JWT
+        # (single line of base64url segments) so a hostile exchange response
+        # cannot inject additional environment variables.
+        jwt_re='^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+        if ! [[ "${token}" =~ ${jwt_re} ]]; then
+          echo "::error::The exchange server returned a malformed access token"
           exit 1
         fi
         expires_in="$(printf '%s' "${body}" | jq -r '.expires_in // empty' 2>/dev/null || true)"
