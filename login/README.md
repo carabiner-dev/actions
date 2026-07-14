@@ -28,7 +28,7 @@ The exchange is **refused** (no token issued) unless both conditions hold:
 
 - the repository's GitHub organization is claimed as a **namespace** by a
   Carabiner organization, and
-- the repository has at least one **monitored pipeline**.
+- the repository is tracked in the namespace.
 
 If either is missing, the action fails with the exchange server's error.
 
@@ -36,8 +36,9 @@ If either is missing, the action fails with the exchange server's error.
 
 The issued token can carry **capability scopes** (for example
 `attestations:read attestations:write`, the default). Scopes are capability
-switches: they are necessary to use a capability but not sufficient — the
-platform always checks the actual authorization live when the token is used.
+switches: they are necessary to use a capability but not sufficient, the
+platform always checks the actual authorization of the repository's service
+account when the token is used.
 
 The action requests the scopes in the `scope` input, and the server mints the
 token with the **intersection** of the requested and granted scopes (it never
@@ -55,11 +56,29 @@ Set `scope: ""` to request an **identity-only** token that carries no
 capability scopes. In every case the [authorization
 prerequisites](#authorization) above still apply.
 
+## Resources
+
+The issued token also carries a **resources** claim: the canonical resource
+URIs the token can act on. By default the server stamps the repository's whole
+Carabiner organization (`organization://<handle>`). Pass space-separated URIs
+in the `resource` input to restrict the token further:
+
+- `organization://<handle>`: the whole organization.
+- `repository://<system>/<owner>/<repo>`: one registered repository
+  (registry slug form, eg `repository://github/acme/widgets`).
+- `stash://<handle>[/<namespace>]`: the organization's attestation stash or
+  a namespace in it.
+
+Every requested resource must belong to the repository's Carabiner
+organization as specifying anything else refuses the exchange. Like scopes,
+resources only attenuate, live authorization still applies wherever the
+token is used. Older exchange servers ignore the parameter.
+
 ## Token lifetime
 
 The issued token's expiry is paired to the workflow's OIDC token, so it is
-naturally short-lived (a few minutes). Treat it as ephemeral — request it in the
-job that uses it rather than passing it between jobs.
+naturally short-lived (a few minutes). Treat it as ephemeral and request it in
+the job that uses it rather than passing it between jobs.
 
 ## Requirements
 
@@ -74,6 +93,7 @@ job that uses it rather than passing it between jobs.
 | `exchange-url` | No | `https://auth.carabiner.dev` | Base URL of the Carabiner token exchange server. The workflow OIDC token is minted for this audience. |
 | `audience` | No | `https://api.carabiner.dev` | Audience (a Carabiner service URL) to request the token for. Must be on the exchange server's allowlist. |
 | `scope` | No | `attestations:read attestations:write` | Space-separated capability scopes to request. The issued token carries the intersection of the requested and granted scopes; set empty for an identity-only token. |
+| `resource` | No | _(empty)_ | Space-separated canonical resource URIs restricting which platform objects the token may act on. All resources must belong to the repository's Carabiner organization, an empty resource requests the repository organization. |
 
 ## Outputs
 
@@ -108,12 +128,15 @@ the environment.
 
 ## Troubleshooting
 
-- **"No OIDC token available"** — the calling job is missing
+- **"No OIDC token available"**: the calling job is missing
   `permissions: id-token: write`.
-- **"Token exchange was refused"** — the repository's organization is not
+- **"Token exchange was refused"**: the repository's organization is not
   claimed as a Carabiner namespace, or the repository has no monitored pipeline.
 - **`invalid_scope`** — none of the requested scopes are granted to the
   repository; an organization admin can grant them in Carabiner, or set
   `scope: ""` for an identity-only token.
-- **"Could not reach the carabiner token exchange server"** — check
+- **`invalid_scope` mentioning a resource**: a URI in the `resource` input is
+  outside the repository's Carabiner organization (or names an unregistered
+  repository); fix or drop the entry.
+- **"Could not reach the carabiner token exchange server"**: check
   `exchange-url` and network egress from the runner.
