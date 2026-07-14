@@ -1,0 +1,122 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Carabiner Login'
+author: "carabiner-dev"
+description: 'Exchanges the workflow OIDC identity for a short-lived carabiner token'
+branding:
+  icon: 'log-in'
+  color: 'green'
+inputs:
+  exchange-url:
+    description: 'Base URL of the carabiner token exchange server (deadrop). The workflow OIDC token is minted for this audience.'
+    required: false
+    default: "https://auth.carabiner.dev"
+  audience:
+    description: 'Audience to request the carabiner token for (a carabiner service URL).'
+    required: false
+    default: "https://api.carabiner.dev"
+  scope:
+    description: 'Space-separated capability scopes to request. The issued token carries the intersection of the requested and granted scopes; set empty for an identity-only token.'
+    required: false
+    default: "attestations:read attestations:write"
+outputs:
+  expires-in:
+    description: 'Lifetime of the issued carabiner token, in seconds'
+    value: ${{ steps.login.outputs.expires-in }}
+  scope:
+    description: 'Space-separated scopes granted on the issued token (may be empty)'
+    value: ${{ steps.login.outputs.scope }}
+runs:
+  using: composite
+  steps:
+    - id: login
+      name: 🔑 Carabiner Login
+      shell: bash
+      run: | # zizmor: ignore[github-env] the value written is validated as a single-line JWT and masked
+        set -euo pipefail
+
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+          echo "::error::No OIDC token available. Grant 'id-token: write' to the job that uses carabiner-dev/actions/login."
+          exit 1
+        fi
+
+        # 1. Request the workflow's OIDC identity token, minted for the exchange server.
+        oidc_response="$(curl -sS --fail-with-body -G \
+          -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+          --data-urlencode "audience=${INPUTS_EXCHANGE_URL}" \
+          "${ACTIONS_ID_TOKEN_REQUEST_URL}")" || {
+          echo "::error::Failed to request a workflow OIDC token from the runner"
+          exit 1
+        }
+        subject_token="$(printf '%s' "${oidc_response}" | jq -r '.value // empty')"
+        if [ -z "${subject_token}" ]; then
+          echo "::error::The runner did not return a workflow OIDC token"
+          exit 1
+        fi
+        echo "::add-mask::${subject_token}"
+
+        # 2. Exchange the OIDC token for a short-lived carabiner token (RFC 8693).
+        # Normalize the requested scopes (collapse whitespace); an empty value
+        # requests an identity-only token, so the scope field is omitted.
+        requested_scope="$(printf '%s' "${INPUTS_SCOPE}" | xargs)"
+        scope_args=()
+        if [ -n "${requested_scope}" ]; then
+          scope_args+=(--data-urlencode "scope=${requested_scope}")
+        fi
+        response="$(curl -sS -w '\n%{http_code}' \
+          -X POST "${INPUTS_EXCHANGE_URL%/}/token" \
+          --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+          --data-urlencode "subject_token=${subject_token}" \
+          --data-urlencode "subject_token_type=urn:ietf:params:oauth:token-type:jwt" \
+          --data-urlencode "requested_token_type=urn:ietf:params:oauth:token-type:jwt" \
+          --data-urlencode "audience=${INPUTS_AUDIENCE}" \
+          ${scope_args[@]+"${scope_args[@]}"})" || {
+          echo "::error::Could not reach the carabiner token exchange server at ${INPUTS_EXCHANGE_URL}"
+          exit 1
+        }
+        http_code="$(printf '%s' "${response}" | tail -n1)"
+        body="$(printf '%s' "${response}" | sed '$d')"
+
+        if [ "${http_code}" != "200" ]; then
+          err="$(printf '%s' "${body}" | jq -r '.error // empty' 2>/dev/null || true)"
+          desc="$(printf '%s' "${body}" | jq -r '.error_description // .error // "unknown error"' 2>/dev/null || echo "unknown error")"
+          if [ "${err}" = "invalid_scope" ]; then
+            desc="${desc} None of the requested scopes are granted to this repository — an organization admin can grant them in Carabiner."
+          fi
+          echo "::error::Token exchange was refused (HTTP ${http_code}): ${desc}"
+          exit 1
+        fi
+
+        token="$(printf '%s' "${body}" | jq -r '.access_token // empty' 2>/dev/null || true)"
+        if [ -z "${token}" ]; then
+          echo "::error::Token exchange succeeded but returned no access token"
+          exit 1
+        fi
+        # The token is written to GITHUB_ENV below: require a compact JWT
+        # (single line of base64url segments) so a hostile exchange response
+        # cannot inject additional environment variables.
+        jwt_re='^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'
+        if ! [[ "${token}" =~ ${jwt_re} ]]; then
+          echo "::error::The exchange server returned a malformed access token"
+          exit 1
+        fi
+        expires_in="$(printf '%s' "${body}" | jq -r '.expires_in // empty' 2>/dev/null || true)"
+
+        # Warn when the server narrowed the requested scopes. Older servers
+        # return no scope field; in that case stay silent.
+        granted_scope="$(printf '%s' "${body}" | jq -r '.scope // empty' 2>/dev/null || true)"
+        if [ -n "${requested_scope}" ] && [ -n "${granted_scope}" ] && [ "${granted_scope}" != "${requested_scope}" ]; then
+          echo "::warning::Carabiner narrowed the requested scopes: requested '${requested_scope}', granted '${granted_scope}'"
+        fi
+
+        # 3. Mask the carabiner token and publish it to subsequent steps.
+        echo "::add-mask::${token}"
+        printf 'CARABINER_CREDENTIALS=%s\n' "${token}" >> "${GITHUB_ENV}"
+        echo "expires-in=${expires_in}" >> "${GITHUB_OUTPUT}"
+        echo "scope=${granted_scope}" >> "${GITHUB_OUTPUT}"
+        echo "::notice::Logged in to carabiner; token valid for ${expires_in:-unknown}s"
+      env:
+        INPUTS_EXCHANGE_URL: ${{ inputs.exchange-url }}
+        INPUTS_AUDIENCE: ${{ inputs.audience }}
+        INPUTS_SCOPE: ${{ inputs.scope }}
