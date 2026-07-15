@@ -94,12 +94,17 @@ runs:
         if [ "${http_code}" != "200" ]; then
           err="$(printf '%s' "${body}" | jq -r '.error // empty' 2>/dev/null || true)"
           desc="$(printf '%s' "${body}" | jq -r '.error_description // .error // "unknown error"' 2>/dev/null || echo "unknown error")"
-          if [ "${err}" = "invalid_scope" ]; then
-            case "${desc}" in
-              *resource*) desc="${desc} Requested resources must belong to the repository's Carabiner organization." ;;
-              *) desc="${desc} None of the requested scopes are granted to this repository — an organization admin can grant them in Carabiner." ;;
-            esac
-          fi
+          case "${err}" in
+            invalid_target)
+              desc="${desc} Requested resources must belong to the repository's Carabiner organization." ;;
+            invalid_scope)
+              # Older exchange servers report resource denials as invalid_scope
+              # with a message naming the resource; sniff for those.
+              case "${desc}" in
+                *resource*) desc="${desc} Requested resources must belong to the repository's Carabiner organization." ;;
+                *) desc="${desc} None of the requested scopes are granted to this repository — an organization admin can grant them in Carabiner." ;;
+              esac ;;
+          esac
           echo "::error::Token exchange was refused (HTTP ${http_code}): ${desc}"
           exit 1
         fi
