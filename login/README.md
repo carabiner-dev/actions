@@ -135,8 +135,9 @@ the environment.
 - **`invalid_scope`** — none of the requested scopes are granted to the
   repository; an organization admin can grant them in Carabiner, or set
   `scope: ""` for an identity-only token.
-- **`invalid_scope` mentioning a resource**: a URI in the `resource` input is
-  outside the repository's Carabiner organization (or names an unregistered
-  repository); fix or drop the entry.
+- **`invalid_target`**: a URI in the `resource` input is outside the
+  repository's Carabiner organization (or names an unregistered repository);
+  fix or drop the entry. Older exchange servers report this as
+  `invalid_scope` with a message naming the resource.
 - **"Could not reach the carabiner token exchange server"**: check
   `exchange-url` and network egress from the runner.
