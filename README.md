@@ -32,7 +32,7 @@ jobs:
       id-token: write   # required to mint the workflow OIDC token
       contents: read
     steps:
-      - uses: carabiner-dev/actions/login@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1 # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/login@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2 # pin to a release commit once tagged
       # CARABINER_CREDENTIALS is now set for subsequent steps
 ```
 
@@ -64,7 +64,7 @@ its attestations against a policy.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/ampel/verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     policy: 'path/to/policy.yaml'   # URI or path to policy code
     subject: 'path/to/artifact'     # or digest, eg sha256:98349875bf3e09...
@@ -93,7 +93,7 @@ its attestations against a policy.
 **Basic verification:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/ampel/verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/binary'
@@ -103,7 +103,7 @@ its attestations against a policy.
 **Verification with custom attestations:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/ampel/verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'sha256:abc123...'
@@ -115,7 +115,7 @@ its attestations against a policy.
 **Verification with attestation push:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/ampel/verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -128,7 +128,7 @@ its attestations against a policy.
 **Verification without failing the workflow:**
 
 ```yaml
-- uses: carabiner-dev/actions/ampel/verify@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/ampel/verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     policy: '.ampel/policy.yaml'
     subject: 'path/to/artifact'
@@ -146,7 +146,7 @@ codebase IDs.
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom@94f29392187fe5082d1195a7d4cae3a7ddf09d9c # v1.2.1
+- uses: carabiner-dev/actions/unpack/sbom@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
   with:
     ecosystems: |
       golang
