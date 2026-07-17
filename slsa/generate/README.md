@@ -20,6 +20,20 @@ The attestation is signed using [Sigstore](https://sigstore.dev) keyless
 signing, binding the provenance to the GitHub Actions OIDC identity of the
 workflow.
 
+## Verifying the tejolote download
+
+The action downloads a released `tejolote` binary from
+[kubernetes-sigs/tejolote](https://github.com/kubernetes-sigs/tejolote/releases)
+rather than building it from source. Before use, the binary is verified with the
+[`ampel/verify`](../../ampel/verify) action against tejolote's own signed SLSA
+provenance attestation. The default `policy`
+([`slsa/slsa-build-point`](https://github.com/carabiner-dev/policies/blob/main/slsa/slsa-build-point.json))
+requires that provenance to be signed by tejolote's release-workflow Sigstore
+identity and to record the expected `build-point` (the tejolote source
+repository), so a binary built from anywhere else fails verification. Set
+`verify: false` to skip this (e.g. for air-gapped runners or when pinning an
+unreleased build).
+
 ## Usage
 
 ### Minimal (watch all sibling jobs automatically)
@@ -74,7 +88,7 @@ jobs:
           watch-jobs: "build, integration-tests"
 ```
 
-### With additional artifact sources
+### With external artifact sources
 
 ```yaml
   provenance:
@@ -90,6 +104,10 @@ jobs:
           dependencies: "git+https://github.com/my-org/my-lib@abc123def"
 ```
 
+> **Note:** Setting `artifacts` makes tejolote collect **only** from the URIs you
+> list; the run's GitHub Actions artifacts are no longer collected automatically.
+> Leave `artifacts` empty to keep the automatic collection.
+
 ## Inputs
 
 | Name | Description | Default |
@@ -98,8 +116,15 @@ jobs:
 | `slsa-version` | SLSA predicate version (`1.0` or `0.2`) | `1.0` |
 | `output` | Path to write the attestation file | `provenance.intoto.jsonl` |
 | `watch-jobs` | Comma-separated job names to watch (empty = all siblings) | `""` |
-| `artifacts` | Comma-separated artifact storage URIs | `""` |
+| `artifacts` | Comma-separated storage URIs to collect from. When set, tejolote collects **only** from these and skips the run's automatic GitHub Actions artifacts | `""` |
+| `expand-artifacts` | Unpack GitHub Actions artifact archives and attest each contained file; `false` attests each archive as one subject | `true` |
+| `artifacts-filter` | Glob (path.Match) matched against artifact names; only matching artifacts are attested (all sources) | `""` |
 | `dependencies` | Comma-separated dependency URIs to record | `""` |
+| `timeout` | Max time to wait for watched build jobs (Go duration, `0` disables) | `20m` |
+| `tejolote-version` | Released tejolote version to download and run | `v0.5.0` |
+| `verify` | Verify the downloaded tejolote binary with the `ampel/verify` action against its signed SLSA provenance | `true` |
+| `policy` | Ampel policy locator applied when verifying the download | pinned `slsa/slsa-build-point` |
+| `build-point` | Expected source repository (VCS URI) the default policy checks in the provenance | `git+ssh://github.com/kubernetes-sigs/tejolote` |
 
 ## Outputs
 
