@@ -58,16 +58,25 @@ inputs:
     description: 'Fail the workflow if the policy fails'
     required: false
     default: "true"
+  ampel-version:
+    description: 'AMPEL version to install and run the verification with. Defaults to the version shipped by the ampel installer.'
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
-    # Pinned to the release carrying the current AMPEL default (v1.3.2). Keep
-    # this in step with install/ampel: pinning an older revision here silently
-    # holds the installed AMPEL back to that revision's default, regardless of
-    # any newer default in this repository.
-    - uses: carabiner-dev/actions/install/ampel@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
+    # When ampel-version is set, pass it through; otherwise install with no
+    # version so install/ampel applies its own default. This keeps the AMPEL
+    # version in a single place (install/ampel's version input default, which
+    # the automation bump workflow maintains) instead of duplicating it here.
+    - if: ${{ inputs.ampel-version == '' }}
       name: 🔴🟡🟢 AMPEL Setup
-      id: install
+      uses: carabiner-dev/actions/install/ampel@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
+    - if: ${{ inputs.ampel-version != '' }}
+      name: 🔴🟡🟢 AMPEL Setup (pinned)
+      uses: carabiner-dev/actions/install/ampel@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
+      with:
+        version: ${{ inputs.ampel-version }}
 
     - id: attest-check
       shell: bash
