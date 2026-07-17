@@ -61,7 +61,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/ampel@2a11d59a135c5e291f305f249a92ad7903e3ee0f # v1.1.7
+    # Pinned to the release carrying the current AMPEL default (v1.3.2). Keep
+    # this in step with install/ampel: pinning an older revision here silently
+    # holds the installed AMPEL back to that revision's default, regardless of
+    # any newer default in this repository.
+    - uses: carabiner-dev/actions/install/ampel@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
       name: 🔴🟡🟢 AMPEL Setup
       id: install
 
@@ -130,7 +134,7 @@ runs:
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: Setup bnd
-      uses: carabiner-dev/actions/install/bnd@2a11d59a135c5e291f305f249a92ad7903e3ee0f # v1.1.7
+      uses: carabiner-dev/actions/install/bnd@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' }}
       name: sign-ampel-results
