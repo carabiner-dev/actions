@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: Check Internal Pins
+
+# Verifies that every carabiner-dev/actions self-reference in the composite
+# action definitions points at the current content of main. Between releases
+# the pins are allowed to lag (they are bumped just-in-time by the
+# pin-internal-refs automation), so this is only *enforced* on release commits:
+# if any commit in the pull request carries a "Release-As: " marker the job
+# fails on stale pins, otherwise it only warns.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check-internal-pins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history so the pinned commits can be resolved and compared.
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Check internal pins
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # Normalize away self-pin refs (and their trailing version comment,
+          # which pin-internal-refs strips) so two revisions can be compared on
+          # their real content, ignoring the pin values themselves. Mirrors the
+          # rewrite the pin-internal-refs automation applies.
+          norm() {
+            sed -E 's|(carabiner-dev/actions/[A-Za-z0-9._/-]+)@[^[:space:]#]+[[:space:]]*(#.*)?$|\1@PIN|'
+          }
+
+          # Collect the distinct refs every self-reference is pinned to.
+          mapfile -t REFS < <(
+            grep -rhoE 'carabiner-dev/actions/[A-Za-z0-9._/-]+@[^[:space:]#]+' \
+              --include=action.yml --include=action.yaml . \
+              | sed -E 's|.*@||' | sort -u
+          )
+
+          STALE=0
+          REASON=""
+
+          if [ "${#REFS[@]}" -eq 0 ]; then
+            echo "No internal self-references found"
+          elif [ "${#REFS[@]}" -ne 1 ]; then
+            STALE=1
+            REASON="self-references are pinned to multiple refs: ${REFS[*]}"
+          elif [[ ! "${REFS[0]}" =~ ^[0-9a-f]{40}$ ]]; then
+            STALE=1
+            REASON="self-references are not pinned to a commit sha: ${REFS[0]}"
+          else
+            P="${REFS[0]}"
+            if ! git cat-file -e "${P}^{commit}" 2>/dev/null; then
+              STALE=1
+              REASON="pinned commit ${P} not found in history"
+            elif ! git merge-base --is-ancestor "$P" HEAD 2>/dev/null; then
+              STALE=1
+              REASON="pinned commit ${P:0:12} is not an ancestor of HEAD"
+            else
+              # Each action file must have the same real content at the pinned
+              # commit as at HEAD; a difference means content landed on main
+              # that the pins do not yet reflect.
+              while IFS= read -r -d '' f; do
+                rel="${f#./}"
+                if ! diff -q <(norm < "$f") <(git show "${P}:${rel}" 2>/dev/null | norm) >/dev/null 2>&1; then
+                  STALE=1
+                  REASON="content of ${rel} at HEAD differs from pinned commit ${P:0:12}"
+                  break
+                fi
+              done < <(find . -type f \( -name action.yml -o -name action.yaml \) -not -path './.git/*' -print0)
+            fi
+          fi
+
+          # Is this a release? A "Release-As: " marker in any commit of the PR
+          # (or the HEAD commit for non-PR runs) turns the warning into a hard
+          # failure.
+          MARKER="Release-As: "
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            MESSAGES=$(git log --format=%B "${BASE_SHA}..${HEAD_SHA}")
+          else
+            MESSAGES=$(git log -1 --format=%B)
+          fi
+          RELEASE=0
+          if grep -qF "${MARKER}" <<<"${MESSAGES}"; then
+            RELEASE=1
+          fi
+
+          if [ "$STALE" -eq 0 ]; then
+            echo "::notice::Internal action pins are up to date"
+            exit 0
+          fi
+
+          if [ "$RELEASE" -eq 1 ]; then
+            echo "::error::Internal pins are not up to date: ${REASON}"
+            echo "A release is being cut (a commit carries '${MARKER}') but the internal"
+            echo "action pins still lag. Run the pin-internal-refs automation and merge its"
+            echo "PR before tagging."
+            exit 1
+          fi
+
+          echo "::warning::Internal pins not up to date: ${REASON}"
+          echo "This is only enforced on release commits (a commit message containing"
+          echo "'${MARKER}'); no release marker was found, so this is informational."
+          exit 0
