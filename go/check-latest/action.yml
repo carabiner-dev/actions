@@ -18,7 +18,7 @@ runs:
   steps:
     - name: Resolve Go versions
       id: versions
-      uses: carabiner-dev/actions/go/versions@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
+      uses: carabiner-dev/actions/go/versions@619a474b2178d06ccf274349397cd67a7802a4fe
       with:
         go-mod-path: ${{ inputs.go-mod-path }}
 

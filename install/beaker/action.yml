@@ -24,7 +24,7 @@ runs:
       run: |
         echo "::error::beaker does not have a Windows binary"
         exit 1
-    - uses: carabiner-dev/actions/install/download-and-verify@174f1c83779af3d3d7e451b7ead7ba824d0d2aa9 # v1.2.2
+    - uses: carabiner-dev/actions/install/download-and-verify@619a474b2178d06ccf274349397cd67a7802a4fe
       with:
         tool: beaker
         version: ${{ inputs.version }}
