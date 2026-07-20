@@ -147,7 +147,7 @@ jobs:
     outputs:
       go-versions: ${{ steps.matrix.outputs.go-versions }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: go-versions
         uses: carabiner-dev/actions/go/versions@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
       - id: matrix
@@ -161,7 +161,7 @@ jobs:
         go-version: ${{ fromJSON(needs.resolve.outputs.go-versions) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ matrix.go-version }}
