@@ -19,7 +19,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: carabiner-dev/actions/install/download-and-verify@619a474b2178d06ccf274349397cd67a7802a4fe
+    - uses: carabiner-dev/actions/install/download-and-verify@be6b4fa42fa3a8432416475d74218b9aa51ea527
       with:
         tool: snappy
         version: ${{ inputs.version }}
