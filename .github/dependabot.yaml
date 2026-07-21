@@ -10,6 +10,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    ignore:
+      # Self-references are sha-pinned to the release commit and bumped
+      # just-in-time by the pin-internal-refs automation; tracking them here
+      # opens one PR per directory on every push to main.
+      - dependency-name: "carabiner-dev/actions/*"
     groups:
       actions:
         update-types:
