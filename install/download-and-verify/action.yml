@@ -126,7 +126,8 @@ runs:
         shell: bash
         run: |
           mkdir -p "${INSTALL_DIR}/bin" || :
-          curl -sSfL -o "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}" \
+          curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
+            -o "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}" \
             "https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
           chmod 0755 "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}"
         env:

@@ -126,7 +126,7 @@ runs:
         BIN="${DIR}/tejolote${ext}"
 
         echo "Downloading tejolote ${VERSION} (${os}/${arch})"
-        curl -sSfL --retry 3 --retry-delay 2 \
+        curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
           -o "${BIN}" "${BASE}/tejolote-${arch}-${os}${ext}"
         chmod 0755 "${BIN}"
         echo "bin=${BIN}" >> "${GITHUB_OUTPUT}"
@@ -136,7 +136,7 @@ runs:
         if [ "${INPUTS_VERIFY}" = "true" ]; then
           ATT_DIR="${DIR}/attestations"
           mkdir -p "${ATT_DIR}"
-          curl -sSfL --retry 3 --retry-delay 2 \
+          curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
             -o "${ATT_DIR}/tejolote-${VERSION}.provenance.json" \
             "${BASE}/tejolote-${VERSION}.provenance.json"
           echo "attest-dir=${ATT_DIR}" >> "${GITHUB_OUTPUT}"
