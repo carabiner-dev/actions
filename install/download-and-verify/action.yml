@@ -59,6 +59,7 @@ runs:
   using: "composite"
   steps:
       - name: Validate install-dir
+        id: install-dir
         shell: bash
         run: |
           case "$INPUTS_INSTALL_DIR" in
@@ -67,6 +68,14 @@ runs:
               exit 1
               ;;
           esac
+          # The value arrives through env, so the shell never expands a $HOME
+          # or ~ prefix. So we resolve the path here and use it downstream.
+          case "$INPUTS_INSTALL_DIR" in
+            '$HOME'|'$HOME'/*) dir="${HOME}${INPUTS_INSTALL_DIR#\$HOME}" ;;
+            '~'|'~'/*)         dir="${HOME}${INPUTS_INSTALL_DIR#\~}" ;;
+            *)                 dir="$INPUTS_INSTALL_DIR" ;;
+          esac
+          echo "path=$dir" >> "$GITHUB_OUTPUT"
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
 
@@ -116,12 +125,12 @@ runs:
       - name: Install ${{ inputs.tool }}
         shell: bash
         run: |
-          mkdir -p ${INPUTS_INSTALL_DIR}/bin || :
-          curl -sSfL -o ${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT} \
+          mkdir -p "${INSTALL_DIR}/bin" || :
+          curl -sSfL -o "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}" \
             "https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
-          chmod 0755 ${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}
+          chmod 0755 "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}"
         env:
-          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+          INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
           INPUTS_TOOL: ${{ inputs.tool }}
           STEPS_PLATFORM_OUTPUTS_EXT: ${{ steps.platform.outputs.ext }}
           STEPS_PLATFORM_OUTPUTS_REPO: ${{ steps.platform.outputs.repo }}
@@ -138,7 +147,7 @@ runs:
           DEFAULT_SIGNER: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/carabiner-dev/${{ steps.platform.outputs.repo }}/\.github/workflows/release\.yaml@refs/tags/[^/]+'
           INPUTS_TOOL: ${{ inputs.tool }}
           INPUTS_VERSION: ${{ inputs.version }}
-          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+          INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
           STEPS_PLATFORM_OUTPUTS_EXT: ${{ steps.platform.outputs.ext }}
           STEPS_PLATFORM_OUTPUTS_REPO: ${{ steps.platform.outputs.repo }}
           INPUTS_ATTESTATION_FILE: ${{ inputs.attestation-file }}
@@ -148,7 +157,7 @@ runs:
           echo "::group::Verify ${INPUTS_TOOL} ${INPUTS_VERSION}"
 
           args=(verify)
-          args+=(--subject="${INPUTS_INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
+          args+=(--subject="${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
           args+=(--collector="https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${INPUTS_ATTESTATION_FILE}")
           args+=(--policy="${INPUTS_POLICY}")
 
@@ -174,12 +183,17 @@ runs:
           echo "::endgroup::"
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-        run: echo "${INPUTS_INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
+        run: echo "${INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
         shell: bash
         env:
-          INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+          INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
       - if: ${{ runner.os == 'Windows' }}
-        run: echo "$env:INPUTS_INSTALL_DIR/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append # zizmor: ignore[github-env] install-dir validated upstream
+        # Resolve $HOME/~ with pwsh's own $HOME so PATH gets a Windows-style path.
+        run: | # zizmor: ignore[github-env] install-dir validated upstream
+          $dir = $env:INPUTS_INSTALL_DIR
+          if ($dir -eq '$HOME' -or $dir.StartsWith('$HOME/')) { $dir = $HOME + $dir.Substring(5) }
+          elseif ($dir -eq '~' -or $dir.StartsWith('~/')) { $dir = $HOME + $dir.Substring(1) }
+          echo "$dir/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         shell: pwsh
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
