@@ -60,7 +60,7 @@ runs:
   using: "composite"
   steps:
     - name: Install unpack
-      uses: carabiner-dev/actions/install/unpack@619a474b2178d06ccf274349397cd67a7802a4fe
+      uses: carabiner-dev/actions/install/unpack@16009dca48ac369882d4333f1d15d7cd3a4ded31
 
     - name: Generate SBOMs
       id: generate
