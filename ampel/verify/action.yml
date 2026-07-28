@@ -54,6 +54,15 @@ inputs:
     description: 'Contextual values to pass to the policy (e.g. "key=value,key2=value2")'
     required: false
     default: ""
+  results:
+    description: >
+      What to write to the workflow step summary: "report" renders the full
+      evaluation results table, "summary" writes a single traffic-light line
+      and "none" writes nothing to the summary while printing the full
+      results to the step log. The summary line requires ampel v1.3.5 or
+      newer; with older versions the action falls back to the full report.
+    required: false
+    default: "report"
   fail:
     description: 'Fail the workflow if the policy fails'
     required: false
@@ -97,6 +106,34 @@ runs:
         ctx_flags=()
         sign_flags=()
 
+        case "${INPUTS_RESULTS}" in
+          report|summary|none) ;;
+          *)
+            echo "::error::results must be one of: report, summary, none; got: ${INPUTS_RESULTS}"
+            exit 1
+            ;;
+        esac
+
+        # The summary driver shipped in ampel v1.3.5. To guard against
+        # older releases, fall back to the full report when the installed
+        # ampel does not have it.
+        RESULTS_MODE="${INPUTS_RESULTS}"
+        if [ "${RESULTS_MODE}" = "summary" ]; then
+          AMPEL_VERSION="$(ampel version 2>/dev/null | sed -n 's/^GitVersion:[[:space:]]*//p' || true)"
+          case "${AMPEL_VERSION}" in
+            v[0-9]*)
+              if [ "$(printf 'v1.3.5\n%s\n' "${AMPEL_VERSION}" | sort -V | head -n1)" != "v1.3.5" ]; then
+                echo "::notice::ampel ${AMPEL_VERSION} predates the summary output driver (v1.3.5), writing the full report instead"
+                RESULTS_MODE="report"
+              fi
+              ;;
+            *)
+              echo "::notice::cannot determine the ampel version, writing the full report instead of the summary"
+              RESULTS_MODE="report"
+              ;;
+          esac
+        fi
+
         if [ -n "${INPUTS_CONTEXT}" ]; then
           ctx_flags=(--context "${INPUTS_CONTEXT}")
         fi
@@ -117,24 +154,44 @@ runs:
           key_flags+=(--key="${KEYDATA_FILE}")
         fi
 
-        ampel verify \
-          --subject="${INPUTS_SUBJECT}" \
-          --collector="${INPUTS_COLLECTOR}" \
-          --policy="${INPUTS_POLICY}" \
-          --exit-code="${INPUTS_FAIL}" \
-          --attest-results="${STEPS_ATTEST_CHECK_OUTPUTS_ATTEST}" \
-          --attest-format="${INPUTS_ATTEST_FORMAT}" \
-          --results-path="${INPUTS_RESULTS_PATH}" \
-          --attestation="${INPUTS_ATTESTATION}" \
-          --signer="${INPUTS_SIGNER}" \
-          "${key_flags[@]}" \
-          "${ctx_flags[@]}" \
-          "${sign_flags[@]}" \
-          --format="html" >> "$GITHUB_STEP_SUMMARY"
+        args=(verify
+          --subject="${INPUTS_SUBJECT}"
+          --collector="${INPUTS_COLLECTOR}"
+          --policy="${INPUTS_POLICY}"
+          --exit-code="${INPUTS_FAIL}"
+          --attest-results="${STEPS_ATTEST_CHECK_OUTPUTS_ATTEST}"
+          --attest-format="${INPUTS_ATTEST_FORMAT}"
+          --results-path="${INPUTS_RESULTS_PATH}"
+          --attestation="${INPUTS_ATTESTATION}"
+          --signer="${INPUTS_SIGNER}"
+          "${key_flags[@]}"
+          "${ctx_flags[@]}"
+          "${sign_flags[@]}"
+        )
+
+        rc=0
+        case "${RESULTS_MODE}" in
+          report)
+            ampel "${args[@]}" --format="html" >> "$GITHUB_STEP_SUMMARY" || rc=$?
+            ;;
+          summary)
+            line="$(ampel "${args[@]}" --format="summary")" || rc=$?
+            if [ -n "${line}" ]; then
+              echo "${line}"
+              echo "${line}" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            ;;
+          none)
+            # The full results go to the step log only
+            ampel "${args[@]}" --format="tty" || rc=$?
+            ;;
+        esac
 
         if [ -n "${KEYDATA_FILE:-}" ]; then
           rm -f "${KEYDATA_FILE}"
         fi
+
+        exit "${rc}"
       env:
         INPUTS_CONTEXT: ${{ inputs.context }}
         INPUTS_KEY: ${{ inputs.key }}
@@ -143,6 +200,7 @@ runs:
         INPUTS_COLLECTOR: ${{ inputs.collector }}
         INPUTS_POLICY: ${{ inputs.policy }}
         INPUTS_FAIL: ${{ inputs.fail }}
+        INPUTS_RESULTS: ${{ inputs.results }}
         STEPS_ATTEST_CHECK_OUTPUTS_ATTEST: ${{ steps.attest-check.outputs.attest }}
         INPUTS_ATTEST_FORMAT: ${{ inputs.attest-format }}
         INPUTS_RESULTS_PATH: ${{ inputs.results-path }}
