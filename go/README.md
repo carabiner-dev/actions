@@ -32,7 +32,7 @@ used internally by `go/check-latest` and `go/check-previous`.
 ```yaml
 - name: Resolve Go versions
   id: go-versions
-  uses: carabiner-dev/actions/go/versions@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+  uses: carabiner-dev/actions/go/versions@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 
 - name: Set up Go
   uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -55,13 +55,13 @@ doesn't match.
 ### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-latest@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+- uses: carabiner-dev/actions/go/check-latest@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 ```
 
 With a custom go.mod path:
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-latest@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+- uses: carabiner-dev/actions/go/check-latest@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
   with:
     go-mod-path: 'src/go.mod'
 ```
@@ -89,7 +89,7 @@ error message if the version doesn't match.
 ### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/go/check-previous@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+- uses: carabiner-dev/actions/go/check-previous@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 ```
 
 On failure, the action produces an error like:
@@ -118,13 +118,13 @@ Go is already installed on the runner (e.g. via `actions/setup-go`).
   with:
     go-version-file: 'go.mod'
 
-- uses: carabiner-dev/actions/go/modtidy@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+- uses: carabiner-dev/actions/go/modtidy@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 ```
 
 With a custom working directory:
 
 ```yaml
-- uses: carabiner-dev/actions/go/modtidy@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+- uses: carabiner-dev/actions/go/modtidy@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
   with:
     working-directory: 'src'
 ```
@@ -149,7 +149,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: go-versions
-        uses: carabiner-dev/actions/go/versions@2a4b2cd115ede14629b03ef7e77586d3269d4c72 # v1.2.3
+        uses: carabiner-dev/actions/go/versions@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
       - id: matrix
         run: |
           echo "go-versions=[\"${{ steps.go-versions.outputs.GO_VERSION_STABLE }}\",\"${{ steps.go-versions.outputs.GO_VERSION_PREVIOUS }}\"]" >> "$GITHUB_OUTPUT"
