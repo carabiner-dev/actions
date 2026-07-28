@@ -59,7 +59,7 @@ inputs:
     required: false
     default: "true"
   ampel-version:
-    description: 'AMPEL version to install and run the verification with. Defaults to the version shipped by the ampel installer.'
+    description: 'AMPEL version to install and run the verification with. Defaults to the version shipped by the ampel installer. Signing the results attestation (attest: true) requires v1.3.3 or later.'
     required: false
     default: ''
 runs:
@@ -95,9 +95,16 @@ runs:
       run: |
         key_flags=()
         ctx_flags=()
+        sign_flags=()
 
         if [ -n "${INPUTS_CONTEXT}" ]; then
           ctx_flags=(--context "${INPUTS_CONTEXT}")
+        fi
+
+        # When attesting, have ampel sign the results attestation itself.
+        # The default sigstore backend picks up the workflow identity token.
+        if [ "${STEPS_ATTEST_CHECK_OUTPUTS_ATTEST}" = "true" ]; then
+          sign_flags+=(--sign)
         fi
 
         if [ -n "${INPUTS_KEY}" ]; then
@@ -122,6 +129,7 @@ runs:
           --signer="${INPUTS_SIGNER}" \
           "${key_flags[@]}" \
           "${ctx_flags[@]}" \
+          "${sign_flags[@]}" \
           --format="html" >> "$GITHUB_STEP_SUMMARY"
 
         if [ -n "${KEYDATA_FILE:-}" ]; then
@@ -140,19 +148,6 @@ runs:
         INPUTS_RESULTS_PATH: ${{ inputs.results-path }}
         INPUTS_ATTESTATION: ${{ inputs.attestation }}
         INPUTS_SIGNER: ${{ inputs.signer }}
-
-    - if: ${{ steps.attest-check.outputs.attest == 'true' }}
-      name: Setup bnd
-      uses: carabiner-dev/actions/install/bnd@619a474b2178d06ccf274349397cd67a7802a4fe
-
-    - if: ${{ steps.attest-check.outputs.attest == 'true' }}
-      name: sign-ampel-results
-      shell: bash
-      run: |
-        mv "${INPUTS_RESULTS_PATH}" "${INPUTS_RESULTS_PATH}.tmp"
-        bnd statement "${INPUTS_RESULTS_PATH}.tmp" >> "${INPUTS_RESULTS_PATH}"
-      env:
-        INPUTS_RESULTS_PATH: ${{ inputs.results-path }}
 
     - if: ${{ steps.attest-check.outputs.attest == 'true' && inputs.push-attestation == 'true' }}
       name: Push attestation to artifacts
