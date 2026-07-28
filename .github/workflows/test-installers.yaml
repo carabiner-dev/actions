@@ -97,7 +97,7 @@ jobs:
       - name: Download bnd binary as test subject
         shell: bash
         run: |
-          curl -sSfL -o /tmp/bnd \
+          curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 -o /tmp/bnd \
             "https://github.com/carabiner-dev/bnd/releases/download/v0.4.1/bnd-v0.4.1-linux-amd64"
 
       - name: Verify bnd with ampel/verify
