@@ -80,10 +80,10 @@ runs:
     # the automation bump workflow maintains) instead of duplicating it here.
     - if: ${{ inputs.ampel-version == '' }}
       name: 🔴🟡🟢 AMPEL Setup
-      uses: carabiner-dev/actions/install/ampel@16009dca48ac369882d4333f1d15d7cd3a4ded31
+      uses: carabiner-dev/actions/install/ampel@2fec8bd8e1dcfdea26080648070b4827f1fa0584
     - if: ${{ inputs.ampel-version != '' }}
       name: 🔴🟡🟢 AMPEL Setup (pinned)
-      uses: carabiner-dev/actions/install/ampel@16009dca48ac369882d4333f1d15d7cd3a4ded31
+      uses: carabiner-dev/actions/install/ampel@2fec8bd8e1dcfdea26080648070b4827f1fa0584
       with:
         version: ${{ inputs.ampel-version }}
 

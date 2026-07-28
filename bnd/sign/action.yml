@@ -35,13 +35,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: carabiner-dev/actions/install/bnd@16009dca48ac369882d4333f1d15d7cd3a4ded31
+    - uses: carabiner-dev/actions/install/bnd@2fec8bd8e1dcfdea26080648070b4827f1fa0584
       name: Install bnd
       with:
         version: ${{ inputs.bnd-version }}
       if: ${{ inputs.bnd-version != '' }}
 
-    - uses: carabiner-dev/actions/install/bnd@16009dca48ac369882d4333f1d15d7cd3a4ded31
+    - uses: carabiner-dev/actions/install/bnd@2fec8bd8e1dcfdea26080648070b4827f1fa0584
       name: Install bnd (latest)
       if: ${{ inputs.bnd-version == '' }}
 
