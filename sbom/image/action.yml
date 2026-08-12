@@ -1,0 +1,106 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: unpack sbom image
+author: carabiner-dev
+description: 'Generates SBOMs of container images using unpack'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  images:
+    description: >
+      Newline-separated list of OCI references to generate SBOMs for
+      (e.g. "alpine:3.21" or "ghcr.io/org/app@sha256:..."). Multi-arch
+      references are unpacked into one SBOM covering every platform image.
+    required: true
+  files:
+    description: 'Include the package file lists in the generated SBOMs'
+    required: false
+    default: 'false'
+  format:
+    description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
+    required: false
+    default: 'spdx3'
+  attest:
+    description: 'Wrap the generated SBOMs in in-toto attestations'
+    required: false
+    default: 'false'
+  sign:
+    description: >
+      Sign the attestations into sigstore bundles (implies attest).
+      Requires the job to grant the `id-token: write` permission.
+    required: false
+    default: 'false'
+  output-path:
+    description: >
+      Directory where the generated SBOMs will be written.
+      When empty, a temporary directory is created automatically.
+    required: false
+    default: ''
+  push-to-release:
+    description: >
+      When set, upload the generated SBOMs to the GitHub release
+      matching this tag (e.g. "v1.2.3"). Requires the GH_TOKEN
+      environment variable to be set.
+    required: false
+    default: ''
+  unpack-version:
+    description: >
+      Version of unpack to install. Must be v0.3.1 or newer, the first
+      release shipping the `unpack image` command. When empty, the version
+      pinned by install/unpack is used.
+    required: false
+    default: ''
+
+outputs:
+  files:
+    description: 'Newline-separated list of generated SBOM file paths'
+    value: ${{ steps.generate.outputs.files }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install unpack
+      if: inputs.unpack-version == ''
+      uses: carabiner-dev/actions/install/unpack@2fec8bd8e1dcfdea26080648070b4827f1fa0584
+
+    - name: Install unpack (pinned version)
+      if: inputs.unpack-version != ''
+      uses: carabiner-dev/actions/install/unpack@2fec8bd8e1dcfdea26080648070b4827f1fa0584
+      with:
+        version: ${{ inputs.unpack-version }}
+
+    - name: Check unpack supports image extraction
+      shell: bash
+      run: |
+        if ! unpack image --help >/dev/null 2>&1; then
+          echo "::error::The installed unpack does not support 'unpack image'. Set the unpack-version input to a release that ships the image command."
+          exit 1
+        fi
+
+    - name: Generate SBOMs
+      id: generate
+      shell: bash
+      env:
+        INPUT_IMAGES: ${{ inputs.images }}
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_ATTEST: ${{ inputs.attest }}
+        INPUT_SIGN: ${{ inputs.sign }}
+        INPUT_OUTPUT_PATH: ${{ inputs.output-path }}
+      run: |
+        ${{ github.action_path }}/generate.sh
+
+    - name: Upload SBOMs to release
+      if: inputs.push-to-release != ''
+      shell: bash
+      env:
+        SBOM_FILES: ${{ steps.generate.outputs.files }}
+        RELEASE_TAG: ${{ inputs.push-to-release }}
+      run: |
+        for f in ${SBOM_FILES}; do
+          echo "Uploading ${f} to release ${RELEASE_TAG}"
+          gh release upload "${RELEASE_TAG}" "${f}"
+        done

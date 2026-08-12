@@ -136,17 +136,20 @@ its attestations against a policy.
     fail: 'false'
 ```
 
-### unpack/sbom
+### sbom/source
 
-The `unpack/sbom` action generates SBOMs (Software Bill of Materials) for all
-codebases discovered by [unpack](https://github.com/carabiner-dev/unpack). It
-supports SPDX and CycloneDX formats and can filter by ecosystem or specific
-codebase IDs.
+The `sbom/source` action generates SBOMs (Software Bill of Materials) for all
+codebases discovered by [unpack](https://github.com/carabiner-dev/unpack) in the
+repository source. It supports SPDX and CycloneDX formats and can filter by
+ecosystem or specific codebase IDs.
+
+> This action used to live at `unpack/sbom`. That path still works but is
+> deprecated and will be removed in a future release.
 
 #### Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+- uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
   with:
     ecosystems: |
       golang
@@ -164,8 +167,43 @@ codebase IDs.
 | `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` |
 | `output-path` | No | `.` | Directory to write SBOMs to |
 
-See the [unpack/sbom README](unpack/sbom/README.md) for full documentation,
+See the [sbom/source README](sbom/source/README.md) for full documentation,
 filename conventions, and more examples.
+
+### sbom/image
+
+The `sbom/image` action generates SBOMs of container images with
+[unpack](https://github.com/carabiner-dev/unpack). It pulls each image, squashes
+its layers and extracts the operating system packages installed in it (apk, dpkg
+and rpm, including distroless images). The resulting SBOMs can be wrapped in
+in-toto attestations and signed with the workflow's own identity.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  with:
+    images: ghcr.io/${{ github.repository }}:${{ github.sha }}
+    attest: 'true'
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `images` | Yes | - | Newline-separated list of OCI references to generate SBOMs for |
+| `files` | No | `false` | Include the package file lists in the generated SBOMs |
+| `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` |
+| `attest` | No | `false` | Wrap the generated SBOMs in in-toto attestations |
+| `sign` | No | `false` | Sign the attestations into sigstore bundles (implies `attest`) |
+| `output-path` | No | `""` | Directory to write SBOMs to |
+| `push-to-release` | No | `""` | Upload the generated SBOMs to the GitHub release matching this tag |
+| `unpack-version` | No | `""` | Version of unpack to install; must be v0.3.1 or newer |
+
+Signing requires the job to grant `id-token: write`.
+
+See the [sbom/image README](sbom/image/README.md) for full documentation,
+filename conventions, private registry notes, and more examples.
 
 ### Go Actions
 

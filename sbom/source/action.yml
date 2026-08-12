@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: Copyright 2025 Carabiner Systems, Inc
 # SPDX-License-Identifier: Apache-2.0
 
-name: unpack sbom
+name: unpack sbom source
 author: carabiner-dev
-description: '[Deprecated: use sbom/source] Generates SBOMs for codebases discovered by unpack'
+description: 'Generates SBOMs for source codebases discovered by unpack'
 branding:
   icon: 'file-text'
   color: 'blue'
@@ -36,7 +36,7 @@ inputs:
   format:
     description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
     required: false
-    default: 'spdx'
+    default: 'spdx3'
   output-path:
     description: >
       Directory where generated SBOMs will be written.
@@ -59,11 +59,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Deprecation notice
-      shell: bash
-      run: |
-        echo "::warning title=Deprecated action::carabiner-dev/actions/unpack/sbom moved to carabiner-dev/actions/sbom/source. This path still works but is no longer maintained and will be removed in a future release."
-
     - name: Install unpack
       uses: carabiner-dev/actions/install/unpack@2fec8bd8e1dcfdea26080648070b4827f1fa0584
 
