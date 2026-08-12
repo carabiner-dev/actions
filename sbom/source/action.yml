@@ -36,7 +36,7 @@ inputs:
   format:
     description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
     required: false
-    default: 'spdx'
+    default: 'spdx3'
   output-path:
     description: >
       Directory where generated SBOMs will be written.

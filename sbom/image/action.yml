@@ -22,7 +22,7 @@ inputs:
   format:
     description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
     required: false
-    default: 'spdx'
+    default: 'spdx3'
   attest:
     description: 'Wrap the generated SBOMs in in-toto attestations'
     required: false
@@ -46,13 +46,11 @@ inputs:
       environment variable to be set.
     required: false
     default: ''
-  # TODO: default this to the first unpack release shipping `unpack image`.
-  # install/unpack currently defaults to a version that predates the command.
   unpack-version:
     description: >
-      Version of unpack to install. Must be a release that ships the
-      `unpack image` command. When empty, the version pinned by
-      install/unpack is used.
+      Version of unpack to install. Must be v0.3.1 or newer, the first
+      release shipping the `unpack image` command. When empty, the version
+      pinned by install/unpack is used.
     required: false
     default: ''
 

@@ -1,4 +1,4 @@
-# unpack/sbom/image
+# sbom/image
 
 A reusable GitHub Action that generates SBOMs (Software Bill of Materials) of
 container images using [unpack](https://github.com/carabiner-dev/unpack).
@@ -14,15 +14,15 @@ The SBOMs can optionally be wrapped in in-toto attestations and signed into
 sigstore bundles using the workflow's own identity, which is what makes the
 action useful right after an image build step in CI.
 
-> [!IMPORTANT]
-> This action requires a release of unpack that ships the `unpack image`
-> command. Use the `unpack-version` input to select it until the version
-> pinned by [`install/unpack`](../../../install/unpack) catches up.
+> [!NOTE]
+> Image extraction landed in unpack v0.3.1, which is the version
+> [`install/unpack`](../../install/unpack) installs by default. The
+> `unpack-version` input overrides it with any newer release.
 
 ## Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+- uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
   with:
     images: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
 ```
@@ -45,7 +45,7 @@ With no other inputs, the action will:
 | `sign` | No | `false` | Sign the attestations into sigstore bundles (implies `attest`). |
 | `output-path` | No | `""` | Directory where the generated SBOMs will be written. When empty, a temporary directory is created automatically. |
 | `push-to-release` | No | `""` | When set, upload the generated SBOMs to the GitHub release matching this tag (e.g. `v1.2.3`). Requires `GH_TOKEN` to be set in the environment. |
-| `unpack-version` | No | `""` | Version of unpack to install. Must be a release that ships the `unpack image` command. When empty, the version pinned by `install/unpack` is used. |
+| `unpack-version` | No | `""` | Version of unpack to install. Must be v0.3.1 or newer. When empty, the version pinned by `install/unpack` is used. |
 
 ## Outputs
 
@@ -107,7 +107,7 @@ warns when it replaces a file that already exists.
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: alpine:3.21
 ```
@@ -116,7 +116,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: |
         ghcr.io/${{ github.repository }}:${{ github.ref_name }}
@@ -128,7 +128,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: alpine:3.21
       format: cyclonedx
@@ -144,7 +144,7 @@ steps:
       docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
       docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
 
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
       attest: 'true'
@@ -161,7 +161,7 @@ jobs:
       id-token: write   # required to sign with the job's identity
       contents: read
     steps:
-      - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+      - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
         with:
           images: ghcr.io/${{ github.repository }}:${{ github.sha }}
           sign: 'true'
@@ -178,7 +178,7 @@ steps:
       username: ${{ github.actor }}
       password: ${{ secrets.GITHUB_TOKEN }}
 
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
 ```
@@ -187,7 +187,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
       output-path: /tmp
@@ -200,7 +200,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/unpack/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     id: sbom
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
@@ -214,5 +214,5 @@ steps:
 
 ## See Also
 
-- [`unpack/sbom/source`](../source) — SBOMs of the codebases in the repository
+- [`sbom/source`](../source) — SBOMs of the codebases in the repository
   source, discovered by `unpack ls`.

@@ -1,4 +1,4 @@
-# unpack/sbom/source
+# sbom/source
 
 A reusable GitHub Action that generates SBOMs (Software Bill of Materials)
 for codebases discovered by [unpack](https://github.com/carabiner-dev/unpack).
@@ -10,7 +10,7 @@ format.
 ## Usage
 
 ```yaml
-- uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+- uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 ```
 
 That's it. With no inputs, the action will:
@@ -73,7 +73,7 @@ When the CycloneDX format is used, the extension is `.cdx.json` instead of `.spd
 ```yaml
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
 ```
 
 ### Generate only for Go and npm ecosystems
@@ -81,7 +81,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       ecosystems: |
         golang
@@ -93,7 +93,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       codebases: |
         golang:.
@@ -105,7 +105,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       format: cyclonedx
       files: 'true'
@@ -117,7 +117,7 @@ steps:
 ```yaml
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       ignore: |
         vendor
@@ -130,7 +130,7 @@ steps:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     with:
       output-path: /tmp
       push-to-release: ${{ steps.tag.outputs.tag_name }}
@@ -144,7 +144,7 @@ steps:
 steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-  - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
     id: sbom
     with:
       output-path: sboms/

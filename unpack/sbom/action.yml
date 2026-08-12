@@ -3,7 +3,7 @@
 
 name: unpack sbom
 author: carabiner-dev
-description: '[Deprecated: use unpack/sbom/source] Generates SBOMs for codebases discovered by unpack'
+description: '[Deprecated: use sbom/source] Generates SBOMs for codebases discovered by unpack'
 branding:
   icon: 'file-text'
   color: 'blue'
@@ -62,7 +62,7 @@ runs:
     - name: Deprecation notice
       shell: bash
       run: |
-        echo "::warning title=Deprecated action::carabiner-dev/actions/unpack/sbom moved to carabiner-dev/actions/unpack/sbom/source. This path still works but is no longer maintained and will be removed in a future release."
+        echo "::warning title=Deprecated action::carabiner-dev/actions/unpack/sbom moved to carabiner-dev/actions/sbom/source. This path still works but is no longer maintained and will be removed in a future release."
 
     - name: Install unpack
       uses: carabiner-dev/actions/install/unpack@2fec8bd8e1dcfdea26080648070b4827f1fa0584

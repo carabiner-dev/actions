@@ -1,17 +1,17 @@
 # unpack/sbom (deprecated)
 
 > [!WARNING]
-> **Deprecated:** this action moved to [`unpack/sbom/source`](source/), where it
-> now lives alongside [`unpack/sbom/image`](image/), the action that generates
-> SBOMs of container images.
+> **Deprecated:** this action moved to [`sbom/source`](../../sbom/source),
+> where it now lives alongside [`sbom/image`](../../sbom/image), the action
+> that generates SBOMs of container images.
 >
 > The action at this path still works and is unchanged, but it is no longer
 > maintained and will be removed in a future release. Update your workflows to
 > point at the new location:
->
-> ```yaml
-> - uses: carabiner-dev/actions/unpack/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
-> ```
+
+```yaml
+- uses: carabiner-dev/actions/sbom/source@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+```
 
 A reusable GitHub Action that generates SBOMs (Software Bill of Materials)
 for codebases discovered by [unpack](https://github.com/carabiner-dev/unpack).
