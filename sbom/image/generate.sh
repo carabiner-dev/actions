@@ -32,11 +32,14 @@ else
   OUTPUT_PATH="$(mktemp -d)"
 fi
 
+# `spdx` stays on SPDX 2.3 for callers that already have it in a script;
+# `spdx3` is a name of its own, matching how unpack selects the versions.
 case "${FORMAT}" in
-  spdx)            UNPACK_FMT="spdx"       ; FMT_EXT="spdx" ;;
-  cyclonedx|cdx)   UNPACK_FMT="cyclonedx"  ; FMT_EXT="cdx"  ;;
+  spdx)            UNPACK_FMT="spdx"       ; FMT_EXT="spdx"  ;;
+  spdx3)           UNPACK_FMT="spdx3"      ; FMT_EXT="spdx3" ;;
+  cyclonedx|cdx)   UNPACK_FMT="cyclonedx"  ; FMT_EXT="cdx"   ;;
   *)
-    echo "::error::Unsupported format '${FORMAT}'. Use 'spdx' or 'cyclonedx'."
+    echo "::error::Unsupported format '${FORMAT}'. Use 'spdx', 'spdx3' or 'cyclonedx'."
     exit 1
     ;;
 esac
