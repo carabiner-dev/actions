@@ -4,8 +4,8 @@ A reusable GitHub Action that generates SBOMs (Software Bill of Materials)
 for codebases discovered by [unpack](https://github.com/carabiner-dev/unpack).
 
 The action scans the repository for codebases using `unpack ls`, then runs
-`unpack extract` for each one to produce an SBOM in either SPDX or CycloneDX
-format.
+`unpack extract` for each one to produce an SBOM in SPDX 2.3, SPDX 3.0.1 or
+CycloneDX format.
 
 ## Usage
 
@@ -28,7 +28,7 @@ That's it. With no inputs, the action will:
 | `ecosystems` | No | `""` | Newline-separated list of ecosystems to include (e.g. `golang`, `npm`, `rust`). When empty, all ecosystems are included. |
 | `ignore` | No | `""` | Newline-separated list of path patterns to pass to `unpack ls --ignore` when discovering codebases. |
 | `files` | No | `false` | Include file information in the generated SBOMs. |
-| `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` (also accepts `cdx`). |
+| `format` | No | `spdx3` | SBOM format: `spdx` (SPDX 2.3), `spdx3` (SPDX 3.0.1) or `cyclonedx` (also accepts `cdx`). |
 | `output-path` | No | `""` | Directory where generated SBOMs will be written. When empty, a temporary directory is created automatically. |
 | `push-to-release` | No | `""` | When set, upload the generated SBOMs to the GitHub release matching this tag (e.g. `v1.2.3`). Requires `GH_TOKEN` to be set in the environment. |
 
@@ -64,7 +64,11 @@ Where colons and slashes in the codebase ID are replaced with dashes.
 | `golang:.` (multiple top-level) | `carabiner-dev-unpack-golang.spdx.json` |
 | `golang:.` (only top-level codebase) | `carabiner-dev-unpack.spdx.json` |
 
-When the CycloneDX format is used, the extension is `.cdx.json` instead of `.spdx.json`.
+The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`.
+unpack names these files itself, and releases that predate the SPDX 3 case in
+`codebaseOutputFilename` write a bare `.json` for `spdx3`; the action picks up
+whichever of the two it finds, so read the `files` output rather than
+reconstructing the names.
 
 ## Examples
 

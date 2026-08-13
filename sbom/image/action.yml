@@ -20,7 +20,7 @@ inputs:
     required: false
     default: 'false'
   format:
-    description: 'SBOM format to generate: spdx or cyclonedx (cdx)'
+    description: 'SBOM format to generate: spdx (2.3), spdx3 (3.0.1) or cyclonedx (cdx)'
     required: false
     default: 'spdx3'
   attest:

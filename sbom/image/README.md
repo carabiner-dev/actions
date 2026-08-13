@@ -40,7 +40,7 @@ With no other inputs, the action will:
 | --- | --- | --- | --- |
 | `images` | Yes | - | Newline-separated list of OCI references to generate SBOMs for (e.g. `alpine:3.21`, `ghcr.io/org/app@sha256:...`). |
 | `files` | No | `false` | Include the package file lists in the generated SBOMs. |
-| `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` (also accepts `cdx`). |
+| `format` | No | `spdx3` | SBOM format: `spdx` (SPDX 2.3), `spdx3` (SPDX 3.0.1) or `cyclonedx` (also accepts `cdx`). |
 | `attest` | No | `false` | Wrap the generated SBOMs in in-toto attestations. |
 | `sign` | No | `false` | Sign the attestations into sigstore bundles (implies `attest`). |
 | `output-path` | No | `""` | Directory where the generated SBOMs will be written. When empty, a temporary directory is created automatically. |
@@ -87,8 +87,8 @@ The extension reflects what was requested:
 | `attest: 'true'` | `.spdx.intoto.json` |
 | `sign: 'true'` | `.spdx.bundle.json` |
 
-When the CycloneDX format is used, `spdx` is replaced with `cdx` in all of the
-above.
+The table shows the `spdx` format; `spdx3` and the CycloneDX format replace
+`spdx` with `spdx3` and `cdx` respectively in all of the above.
 
 **Examples:**
 

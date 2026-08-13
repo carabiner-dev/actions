@@ -18,11 +18,14 @@ else
   OUTPUT_PATH="$(mktemp -d)"
 fi
 
+# `spdx` stays on SPDX 2.3 for callers that already have it in a script;
+# `spdx3` is a name of its own, matching how unpack selects the versions.
 case "${FORMAT}" in
-  spdx)            EXTRACT_FMT="spdx"     ; EXT="spdx.json" ;;
-  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; EXT="cdx.json"  ;;
+  spdx)            EXTRACT_FMT="spdx"      ; EXT="spdx.json"  ;;
+  spdx3)           EXTRACT_FMT="spdx3"     ; EXT="spdx3.json" ;;
+  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; EXT="cdx.json"   ;;
   *)
-    echo "::error::Unsupported format '${FORMAT}'. Use 'spdx' or 'cyclonedx'."
+    echo "::error::Unsupported format '${FORMAT}'. Use 'spdx', 'spdx3' or 'cyclonedx'."
     exit 1
     ;;
 esac
@@ -87,6 +90,20 @@ else
   echo "::group::Extracting all codebases"
   unpack extract "${EXTRACT_ARGS[@]}"
   echo "::endgroup::"
+fi
+
+# ---------------------------------------------------------------------------
+# Settle the extension unpack actually used.
+#
+# Unlike sbom/image, this action does not name the files: it passes a
+# directory and unpack derives each name from the codebase id. Releases whose
+# codebaseOutputFilename has no SPDX 3 case fall through to a bare ".json" for
+# spdx3, so look for what is on disk rather than assuming, and keep working
+# either way.
+# ---------------------------------------------------------------------------
+if [[ "${FORMAT}" == "spdx3" ]] && \
+   ! compgen -G "${OUTPUT_PATH}/${PREFIX}*.spdx3.json" > /dev/null; then
+  EXT="json"
 fi
 
 # ---------------------------------------------------------------------------
