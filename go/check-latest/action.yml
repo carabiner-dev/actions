@@ -30,7 +30,7 @@ runs:
   steps:
     - name: Resolve Go versions
       id: versions
-      uses: carabiner-dev/actions/go/versions@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: carabiner-dev/actions/go/versions@3958bf5901a2eac9991884886885abbeeeef747a
       with:
         go-mod-path: ${{ inputs.go-mod-path }}
         minor-cooloff-days: ${{ inputs.minor-cooloff-days }}
