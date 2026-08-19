@@ -19,7 +19,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: carabiner-dev/actions/install/download-and-verify@2fec8bd8e1dcfdea26080648070b4827f1fa0584
+    - uses: carabiner-dev/actions/install/download-and-verify@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
       with:
         tool: vexflow
         version: ${{ inputs.version }}

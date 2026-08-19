@@ -144,7 +144,7 @@ runs:
 
     - name: Verify tejolote provenance
       if: inputs.verify == 'true'
-      uses: carabiner-dev/actions/ampel/verify@2fec8bd8e1dcfdea26080648070b4827f1fa0584
+      uses: carabiner-dev/actions/ampel/verify@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
       with:
         subject: ${{ steps.install-tejolote.outputs.bin }}
         collector: "fs:${{ steps.install-tejolote.outputs.attest-dir }}"

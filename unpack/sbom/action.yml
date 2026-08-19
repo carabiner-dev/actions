@@ -65,7 +65,7 @@ runs:
         echo "::warning title=Deprecated action::carabiner-dev/actions/unpack/sbom moved to carabiner-dev/actions/sbom/source. This path still works but is no longer maintained and will be removed in a future release."
 
     - name: Install unpack
-      uses: carabiner-dev/actions/install/unpack@2fec8bd8e1dcfdea26080648070b4827f1fa0584
+      uses: carabiner-dev/actions/install/unpack@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
 
     - name: Generate SBOMs
       id: generate
