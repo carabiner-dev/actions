@@ -15,6 +15,26 @@ used internally by `go/check-latest` and `go/check-previous`.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `go-mod-path` | No | `go.mod` | Path to the go.mod file |
+| `minor-cooloff-days` | No | `5` | Days a new minor release (`X.Y.0`) must have been out before `X.Y` is reported as the stable line. `0` disables. |
+| `patch-cooloff-days` | No | `1` | Days a patch release (`X.Y.Z`, Z>0) must have been out before it is picked over the previous patch of its line. `0` disables. |
+
+### Cooloff periods
+
+Brand-new Go releases occasionally break builds or tooling. By default the action
+holds back new releases for a short cooloff period rather than reporting them the
+moment they are published:
+
+- A new **minor** line (e.g. `1.27.0`) is only reported as `GO_VERSION_STABLE`
+  once it is at least `minor-cooloff-days` old. Until then the previous line
+  stays stable and `GO_VERSION_PREVIOUS` moves one line further back.
+- A new **patch** (e.g. `1.26.7`) is only picked once it is at least
+  `patch-cooloff-days` old; until then the previous patch of that line (`1.26.6`)
+  is reported. `X.Y.0` releases are governed by the minor cooloff only.
+
+Release dates are taken from the `Last-Modified` header of each release's source
+tarball on [go.dev/dl](https://go.dev/dl/), so no additional services or
+credentials are involved. Set both inputs to `0` to always get the newest
+releases.
 
 ### Outputs
 
@@ -51,6 +71,8 @@ doesn't match.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `go-mod-path` | No | `go.mod` | Path to the go.mod file |
+| `minor-cooloff-days` | No | `5` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
+| `patch-cooloff-days` | No | `1` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
 
 ### Usage
 
@@ -85,6 +107,8 @@ error message if the version doesn't match.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `go-mod-path` | No | `go.mod` | Path to the go.mod file |
+| `minor-cooloff-days` | No | `5` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
+| `patch-cooloff-days` | No | `1` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
 
 ### Usage
 

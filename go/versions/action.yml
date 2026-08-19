@@ -6,12 +6,26 @@ author: carabiner-dev
 description: >
   Reads a project's go.mod and the Go release API to expose the project Go
   version, the current stable Go version, and the previous supported Go version.
+  New releases can be held back for a configurable cooloff period.
 
 inputs:
   go-mod-path:
     description: 'Path to go.mod (default: go.mod in the repo root)'
     required: false
     default: 'go.mod'
+  minor-cooloff-days:
+    description: >-
+      Days a new minor release (X.Y.0) must have been out before X.Y is
+      considered the stable line. Until then the previous line is reported as
+      stable. Set to 0 to disable.
+    required: false
+    default: '5'
+  patch-cooloff-days:
+    description: >-
+      Days a patch release (X.Y.Z, Z>0) must have been out before it is picked
+      over the previous patch of its line. Set to 0 to disable.
+    required: false
+    default: '1'
 
 outputs:
   GO_VERSION_PROJECT:
@@ -21,13 +35,13 @@ outputs:
     description: 'Minor Go version from go.mod without patch (e.g. 1.25)'
     value: ${{ steps.versions.outputs.GO_MINOR_VERSION_PROJECT }}
   GO_VERSION_STABLE:
-    description: 'Latest stable Go release (e.g. 1.26.1)'
+    description: 'Latest stable Go release that has cleared its cooloff (e.g. 1.26.1)'
     value: ${{ steps.versions.outputs.GO_VERSION_STABLE }}
   GO_MINOR_VERSION_STABLE:
     description: 'Latest stable Go minor version without patch (e.g. 1.26)'
     value: ${{ steps.versions.outputs.GO_MINOR_VERSION_STABLE }}
   GO_VERSION_PREVIOUS:
-    description: 'Previous supported Go release (e.g. 1.25.8)'
+    description: 'Previous supported Go release that has cleared its cooloff (e.g. 1.25.8)'
     value: ${{ steps.versions.outputs.GO_VERSION_PREVIOUS }}
   GO_MINOR_VERSION_PREVIOUS:
     description: 'Previous supported Go minor version without patch (e.g. 1.25)'
@@ -60,33 +74,138 @@ runs:
         GO_MINOR_VERSION_PROJECT=$(echo "$GO_VERSION_PROJECT" | grep -oE '^[0-9]+\.[0-9]+')
 
         # --- Stable versions from the Go release API ---
-        # The API returns the two currently supported release branches,
-        # newest first: e.g. [go1.26.1, go1.25.8]
-        RELEASE_JSON=$(curl -sSf 'https://go.dev/dl/?mode=json')
+        # include=all lists every release (newest first) so that we can walk
+        # back past releases that are still inside their cooloff period. The
+        # API carries no release dates; those come from the Last-Modified
+        # header of each release's source tarball on go.dev/dl, fetched only
+        # for the releases we actually need to check.
+        RELEASE_JSON=$(mktemp)
+        curl -sSf 'https://go.dev/dl/?mode=json&include=all' -o "$RELEASE_JSON"
 
-        # Extract unique minor versions (sorted descending) and their latest patch
-        # jq: strip "go" prefix, collect unique minor versions with their full version
-        eval "$(echo "$RELEASE_JSON" | python3 -c "
-        import json, sys
-        releases = json.load(sys.stdin)
-        seen = {}
-        for r in releases:
-            if not r['stable']:
+        RESOLVED=$(python3 - "$RELEASE_JSON" <<'PYEOF'
+        import json
+        import os
+        import sys
+        import urllib.request
+        from datetime import datetime, timedelta, timezone
+        from email.utils import parsedate_to_datetime
+
+
+        def days_input(input_name, env_name):
+            raw = os.environ.get(env_name, "").strip() or "0"
+            try:
+                days = float(raw)
+            except ValueError:
+                sys.exit(f"::error::input {input_name} must be a number of days, got {raw!r}")
+            if days < 0:
+                sys.exit(f"::error::input {input_name} must not be negative, got {raw!r}")
+            return raw, timedelta(days=days)
+
+
+        MINOR_COOLOFF_RAW, MINOR_COOLOFF = days_input("minor-cooloff-days", "INPUTS_MINOR_COOLOFF_DAYS")
+        PATCH_COOLOFF_RAW, PATCH_COOLOFF = days_input("patch-cooloff-days", "INPUTS_PATCH_COOLOFF_DAYS")
+        NOW = datetime.now(timezone.utc)
+
+
+        def log(msg):
+            # stdout is eval'd by the shell; diagnostics go to stderr
+            print(msg, file=sys.stderr)
+
+
+        def version_string(release):
+            tag = release["version"]
+            return tag[2:] if tag.startswith("go") else tag
+
+
+        def parse_version(release):
+            """'go1.27.0' -> (1, 27, 0); 'go1.20' -> (1, 20, 0); None for rc/beta/etc."""
+            parts = version_string(release).split(".")
+            if len(parts) not in (2, 3) or not all(p.isdigit() for p in parts):
+                return None
+            nums = [int(p) for p in parts]
+            return (nums[0], nums[1], nums[2] if len(nums) == 3 else 0)
+
+
+        _release_times = {}
+
+
+        def release_time(release):
+            """Publication time of a release: Last-Modified of its source tarball."""
+            tag = release["version"]
+            if tag not in _release_times:
+                files = release.get("files") or []
+                src = next((f for f in files if f.get("kind") == "source"), files[0] if files else None)
+                if src is None:
+                    sys.exit(f"::error::No files listed for {tag}; cannot determine its release date")
+                url = "https://go.dev/dl/" + src["filename"]
+                req = urllib.request.Request(url, method="HEAD")
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    last_modified = resp.headers.get("Last-Modified")
+                if not last_modified:
+                    sys.exit(f"::error::No Last-Modified header on {url}; cannot determine release date of {tag}")
+                _release_times[tag] = parsedate_to_datetime(last_modified)
+            return _release_times[tag]
+
+
+        def age(release):
+            return NOW - release_time(release)
+
+
+        def days(delta):
+            return f"{delta.total_seconds() / 86400:.1f}"
+
+
+        with open(sys.argv[1]) as f:
+            releases = json.load(f)
+
+        # Group stable releases by minor line: (1, 27) -> [((1, 27, 0), release), ...]
+        lines = {}
+        for release in releases:
+            if not release.get("stable"):
                 continue
-            ver = r['version'].lstrip('go')
-            parts = ver.split('.')
-            minor = parts[0] + '.' + parts[1]
-            if minor not in seen:
-                seen[minor] = ver
-        # Sort by minor version descending
-        ordered = sorted(seen.items(), key=lambda x: list(map(int, x[0].split('.'))), reverse=True)
-        if len(ordered) >= 1:
-            print(f'GO_VERSION_STABLE={ordered[0][1]}')
-            print(f'GO_MINOR_VERSION_STABLE={ordered[0][0]}')
-        if len(ordered) >= 2:
-            print(f'GO_VERSION_PREVIOUS={ordered[1][1]}')
-            print(f'GO_MINOR_VERSION_PREVIOUS={ordered[1][0]}')
-        ")"
+            version = parse_version(release)
+            if version is None:
+                continue
+            lines.setdefault(version[:2], []).append((version, release))
+
+
+        def pick(line):
+            """Newest release of a minor line that has cleared its cooloff, or None
+            if the line itself is still inside the minor cooloff."""
+            ordered = sorted(lines[line], key=lambda item: item[0], reverse=True)
+            base_version, base_release = ordered[-1]  # X.Y.0
+            if MINOR_COOLOFF and age(base_release) < MINOR_COOLOFF:
+                log(f"Skipping Go {line[0]}.{line[1]}: {version_string(base_release)} was released "
+                    f"{days(age(base_release))} days ago (minor cooloff: {MINOR_COOLOFF_RAW} days)")
+                return None
+            for version, release in ordered:
+                if version == base_version or not PATCH_COOLOFF or age(release) >= PATCH_COOLOFF:
+                    return version, release
+                log(f"Skipping Go {version_string(release)}: released {days(age(release))} days ago "
+                    f"(patch cooloff: {PATCH_COOLOFF_RAW} days)")
+            return None  # unreachable: the base release always passes
+
+
+        chosen = []
+        for line in sorted(lines, reverse=True):
+            picked = pick(line)
+            if picked is not None:
+                chosen.append(picked)
+            if len(chosen) == 2:
+                break
+
+        if len(chosen) < 2:
+            sys.exit("::error::Could not resolve two Go release lines from the Go release API")
+
+        (stable_version, stable_release), (previous_version, previous_release) = chosen
+        print(f"GO_VERSION_STABLE={version_string(stable_release)}")
+        print(f"GO_MINOR_VERSION_STABLE={stable_version[0]}.{stable_version[1]}")
+        print(f"GO_VERSION_PREVIOUS={version_string(previous_release)}")
+        print(f"GO_MINOR_VERSION_PREVIOUS={previous_version[0]}.{previous_version[1]}")
+        PYEOF
+        )
+        eval "$RESOLVED"
+        rm -f "$RELEASE_JSON"
 
         # Validate that we got all values
         for var in GO_VERSION_STABLE GO_MINOR_VERSION_STABLE GO_VERSION_PREVIOUS GO_MINOR_VERSION_PREVIOUS; do
@@ -111,3 +230,5 @@ runs:
         echo "Go version (previous): ${GO_VERSION_PREVIOUS} (minor: ${GO_MINOR_VERSION_PREVIOUS})"
       env:
         INPUTS_GO_MOD_PATH: ${{ inputs.go-mod-path }}
+        INPUTS_MINOR_COOLOFF_DAYS: ${{ inputs.minor-cooloff-days }}
+        INPUTS_PATCH_COOLOFF_DAYS: ${{ inputs.patch-cooloff-days }}
