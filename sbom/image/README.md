@@ -22,7 +22,7 @@ action useful right after an image build step in CI.
 ## Usage
 
 ```yaml
-- uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+- uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
   with:
     images: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
 ```
@@ -107,7 +107,7 @@ warns when it replaces a file that already exists.
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: alpine:3.21
 ```
@@ -116,7 +116,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: |
         ghcr.io/${{ github.repository }}:${{ github.ref_name }}
@@ -128,7 +128,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: alpine:3.21
       format: cyclonedx
@@ -144,7 +144,7 @@ steps:
       docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
       docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
 
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
       attest: 'true'
@@ -161,7 +161,7 @@ jobs:
       id-token: write   # required to sign with the job's identity
       contents: read
     steps:
-      - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+      - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
         with:
           images: ghcr.io/${{ github.repository }}:${{ github.sha }}
           sign: 'true'
@@ -178,7 +178,7 @@ steps:
       username: ${{ github.actor }}
       password: ${{ secrets.GITHUB_TOKEN }}
 
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
 ```
@@ -187,7 +187,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
       output-path: /tmp
@@ -200,7 +200,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/sbom/image@36a39ef667efe7112df8b1a534a4e37f35fad6fd # v1.2.6
+  - uses: carabiner-dev/actions/sbom/image@5c3fc97584f8e39921fcfefe319a60f0657294a0 # v1.2.8
     id: sbom
     with:
       images: ghcr.io/${{ github.repository }}:${{ github.sha }}
