@@ -71,6 +71,8 @@ doesn't match.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `go-mod-path` | No | `go.mod` | Path to the go.mod file |
+| `minor-cooloff-days` | No | `5` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
+| `patch-cooloff-days` | No | `1` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
 
 ### Usage
 
@@ -105,6 +107,8 @@ error message if the version doesn't match.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `go-mod-path` | No | `go.mod` | Path to the go.mod file |
+| `minor-cooloff-days` | No | `5` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
+| `patch-cooloff-days` | No | `1` | Passed through to `go/versions`; see [Cooloff periods](#cooloff-periods). |
 
 ### Usage
 

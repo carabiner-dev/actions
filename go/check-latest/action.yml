@@ -12,6 +12,18 @@ inputs:
     description: 'Path to go.mod (default: go.mod in the repo root)'
     required: false
     default: 'go.mod'
+  minor-cooloff-days:
+    description: >-
+      Days a new minor release (X.Y.0) must have been out before it is
+      considered stable. Passed through to go/versions. Set to 0 to disable.
+    required: false
+    default: '5'
+  patch-cooloff-days:
+    description: >-
+      Days a patch release (X.Y.Z, Z>0) must have been out before it is picked
+      over the previous patch. Passed through to go/versions. Set to 0 to disable.
+    required: false
+    default: '1'
 
 runs:
   using: "composite"
@@ -21,6 +33,8 @@ runs:
       uses: carabiner-dev/actions/go/versions@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
       with:
         go-mod-path: ${{ inputs.go-mod-path }}
+        minor-cooloff-days: ${{ inputs.minor-cooloff-days }}
+        patch-cooloff-days: ${{ inputs.patch-cooloff-days }}
 
     - name: Check go.mod uses latest stable Go
       shell: bash
