@@ -51,7 +51,10 @@ inputs:
     required: false
     default: ""
   context:
-    description: 'Contextual values to pass to the policy (e.g. "key=value,key2=value2")'
+    description: >
+      Contextual values to pass to the policy as ampel's -x flag takes
+      them: colon-separated key:value pairs, comma-separated
+      (e.g. "key:value,key2:value2").
     required: false
     default: ""
   results:
