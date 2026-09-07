@@ -107,3 +107,31 @@ jobs:
           collector: https://github.com/carabiner-dev/bnd/releases/download/v0.4.1/attestations.jsonl
           policy: "git+https://github.com/carabiner-dev/policies#slsa/has-attestation.json"
           attest: "false"
+
+  test-snappy-snap:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Snapshot the repository with snappy/snap
+        id: snap
+        uses: ./snappy/snap
+        with:
+          spec: builtin:github/repo.yaml
+          vars: |
+            ORG=${{ github.repository_owner }}
+            REPO=${{ github.event.repository.name }}
+          output: attestations/repo.bundle.json
+
+      - name: Verify the signed bundle
+        shell: bash
+        env:
+          ATTESTATION: ${{ steps.snap.outputs.attestation }}
+        run: |
+          test -s "${ATTESTATION}"
+          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
