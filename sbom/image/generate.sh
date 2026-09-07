@@ -44,15 +44,9 @@ case "${FORMAT}" in
     ;;
 esac
 
-# The extension reflects what unpack writes: a plain SBOM, an in-toto
-# attestation wrapping it or, when signing, a sigstore bundle.
-if [[ "${SIGN_FLAG}" == "true" ]]; then
-  EXT="${FMT_EXT}.bundle.json"
-elif [[ "${ATTEST_FLAG}" == "true" ]]; then
-  EXT="${FMT_EXT}.intoto.json"
-else
-  EXT="${FMT_EXT}.json"
-fi
+# The extension is the format's whether unpack writes a plain SBOM, an
+# in-toto attestation wrapping it or, when signing, a sigstore bundle.
+EXT="${FMT_EXT}.json"
 
 mkdir -p "${OUTPUT_PATH}"
 

@@ -79,16 +79,9 @@ collapsing repeated dashes:
 {sanitized-image-reference}.spdx.json
 ```
 
-The extension reflects what was requested:
-
-| Inputs | Extension |
-| --- | --- |
-| default | `.spdx.json` |
-| `attest: 'true'` | `.spdx.intoto.json` |
-| `sign: 'true'` | `.spdx.bundle.json` |
-
-The table shows the `spdx` format; `spdx3` and the CycloneDX format replace
-`spdx` with `spdx3` and `cdx` respectively in all of the above.
+The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`,
+whether the file holds a bare SBOM, an in-toto statement (`attest: 'true'`) or
+a sigstore bundle (`sign: 'true'`).
 
 **Examples:**
 

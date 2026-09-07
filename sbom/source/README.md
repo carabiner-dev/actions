@@ -68,11 +68,9 @@ Where colons and slashes in the codebase ID are replaced with dashes.
 | `golang:.` (multiple top-level) | `carabiner-dev-unpack-golang.spdx.json` |
 | `golang:.` (only top-level codebase) | `carabiner-dev-unpack.spdx.json` |
 
-The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`.
-When the SBOM is wrapped, the extension says so, following the same convention
-as `sbom/image`: with `attest: 'true'` the files are in-toto statements ending
-in `.intoto.json` (e.g. `carabiner-dev-unpack.spdx.intoto.json`) and with
-`sign: 'true'` they are sigstore bundles ending in `.bundle.json`.
+The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`,
+whether the file holds a bare SBOM, an in-toto statement (`attest: 'true'`) or
+a sigstore bundle (`sign: 'true'`).
 unpack names these files itself, and releases that predate the SPDX 3 case in
 `codebaseOutputFilename` write a bare `.json` for `spdx3`; the action picks up
 whichever of the two it finds, so read the `files` output rather than

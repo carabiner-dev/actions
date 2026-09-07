@@ -30,30 +30,17 @@ fi
 
 # `spdx` stays on SPDX 2.3 for callers that already have it in a script;
 # `spdx3` is a name of its own, matching how unpack selects the versions.
+# The extension is the format's whether the file holds a bare SBOM or, with
+# --attest or --sign, an in-toto statement or a sigstore bundle wrapping it.
 case "${FORMAT}" in
-  spdx)            EXTRACT_FMT="spdx"      ; FMT_EXT="spdx"  ;;
-  spdx3)           EXTRACT_FMT="spdx3"     ; FMT_EXT="spdx3" ;;
-  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; FMT_EXT="cdx"   ;;
+  spdx)            EXTRACT_FMT="spdx"      ; EXT="spdx.json"  ;;
+  spdx3)           EXTRACT_FMT="spdx3"     ; EXT="spdx3.json" ;;
+  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; EXT="cdx.json"   ;;
   *)
     echo "::error::Unsupported format '${FORMAT}'. Use 'spdx', 'spdx3' or 'cyclonedx'."
     exit 1
     ;;
 esac
-
-# The extension unpack writes. It only reflects the SBOM format: unpack keeps
-# it even when --attest or --sign wrap the SBOM (those files are renamed
-# further down).
-EXT="${FMT_EXT}.json"
-
-# What wraps the SBOM decides the final extension, following the sbom/image
-# convention: .intoto.json for in-toto statements and .bundle.json for
-# sigstore bundles. Empty means a bare SBOM, left as unpack named it.
-WRAP=""
-if [[ "${SIGN_FLAG}" == "true" ]]; then
-  WRAP="bundle"
-elif [[ "${ATTEST_FLAG}" == "true" ]]; then
-  WRAP="intoto"
-fi
 
 # Derive the output prefix from the GitHub org and repo name.
 OWNER="${GITHUB_REPOSITORY%%/*}"
@@ -144,26 +131,6 @@ fi
 if [[ "${FORMAT}" == "spdx3" ]] && \
    ! compgen -G "${OUTPUT_PATH}/${PREFIX}*.spdx3.json" > /dev/null; then
   EXT="json"
-  FMT_EXT=""
-fi
-
-# ---------------------------------------------------------------------------
-# Rename wrapped outputs.
-#
-# unpack names every file after the SBOM format even when --attest or --sign
-# wrap it in an in-toto statement or a sigstore bundle, so a consumer reading
-# the directory could not tell a bare SBOM from a signed one. Move them to the
-# sbom/image convention instead: <name>.<fmt>.intoto.json for statements and
-# <name>.<fmt>.bundle.json for bundles (the <fmt> part is dropped when unpack
-# wrote a bare .json, see above).
-# ---------------------------------------------------------------------------
-if [[ -n "${WRAP}" ]]; then
-  NEW_EXT="${FMT_EXT:+${FMT_EXT}.}${WRAP}.json"
-  for f in "${OUTPUT_PATH}/${PREFIX}"*".${EXT}"; do
-    [[ -f "${f}" ]] || continue
-    mv "${f}" "${f%."${EXT}"}.${NEW_EXT}"
-  done
-  EXT="${NEW_EXT}"
 fi
 
 # ---------------------------------------------------------------------------
