@@ -29,6 +29,9 @@ That's it. With no inputs, the action will:
 | `ignore` | No | `""` | Newline-separated list of path patterns to pass to `unpack ls --ignore` when discovering codebases. |
 | `files` | No | `false` | Include file information in the generated SBOMs. |
 | `format` | No | `spdx3` | SBOM format: `spdx` (SPDX 2.3), `spdx3` (SPDX 3.0.1) or `cyclonedx` (also accepts `cdx`). |
+| `attest` | No | `false` | Wrap the generated SBOMs in in-toto attestations. |
+| `sign` | No | `false` | Sign the attestations into sigstore bundles (implies `attest`). Requires the job to grant `id-token: write`. |
+| `networking` | No | `""` | Network access level unpack may use while resolving dependencies: `essential`, `full` or `disabled`. When empty, unpack's own default (`essential`) applies. |
 | `output-path` | No | `""` | Directory where generated SBOMs will be written. When empty, a temporary directory is created automatically. |
 | `push-to-release` | No | `""` | When set, upload the generated SBOMs to the GitHub release matching this tag (e.g. `v1.2.3`). Requires `GH_TOKEN` to be set in the environment. |
 
@@ -37,8 +40,9 @@ That's it. With no inputs, the action will:
 When using `push-to-release`, the token set in `GH_TOKEN` must have `contents: write`
 permission to upload assets to the GitHub release.
 
-If you want to sign the generated SBOMs, the workflow also needs `id-token: write`
-permission to request an OIDC token for signing.
+Signing (`sign: 'true'`) uses the workflow's own identity, so the job also
+needs `id-token: write` permission to request an OIDC token. The action fails
+early with a clear error when signing is requested without it.
 
 ## Outputs
 
@@ -64,7 +68,9 @@ Where colons and slashes in the codebase ID are replaced with dashes.
 | `golang:.` (multiple top-level) | `carabiner-dev-unpack-golang.spdx.json` |
 | `golang:.` (only top-level codebase) | `carabiner-dev-unpack.spdx.json` |
 
-The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`.
+The extension follows the format: `.spdx.json`, `.spdx3.json` or `.cdx.json`,
+whether the file holds a bare SBOM, an in-toto statement (`attest: 'true'`) or
+a sigstore bundle (`sign: 'true'`).
 unpack names these files itself, and releases that predate the SPDX 3 case in
 `codebaseOutputFilename` write a bare `.json` for `spdx3`; the action picks up
 whichever of the two it finds, so read the `files` output rather than
@@ -126,6 +132,30 @@ steps:
       ignore: |
         vendor
         third_party
+```
+
+### Signed SBOM attestations
+
+Generate an SPDX 2.3 SBOM with file information, wrap it in an in-toto
+attestation and sign it with the workflow's identity. The bundle lands in
+`attestations/` ready to be packed with other evidence. Signing needs
+`id-token: write`, and `networking: full` lets unpack reach package registries
+while resolving dependencies.
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+
+steps:
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+  - uses: carabiner-dev/actions/sbom/source@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9
+    with:
+      format: spdx
+      files: 'true'
+      sign: 'true'
+      networking: full
+      output-path: attestations/
 ```
 
 ### Upload SBOMs to a GitHub release

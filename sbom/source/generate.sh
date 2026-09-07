@@ -11,6 +11,16 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 FORMAT="${INPUT_FORMAT:-spdx}"
 FILES_FLAG="${INPUT_FILES:-false}"
+ATTEST_FLAG="${INPUT_ATTEST:-false}"
+SIGN_FLAG="${INPUT_SIGN:-false}"
+NETWORKING="${INPUT_NETWORKING:-}"
+
+# Signing uses the job's workload identity, which is only available when the
+# workflow grants id-token: write. Fail early with a useful message.
+if [[ "${SIGN_FLAG}" == "true" && -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]]; then
+  echo "::error::Signing requires the job to grant the 'id-token: write' permission."
+  exit 1
+fi
 
 if [[ -n "${INPUT_OUTPUT_PATH:-}" ]]; then
   OUTPUT_PATH="${INPUT_OUTPUT_PATH}"
@@ -20,6 +30,8 @@ fi
 
 # `spdx` stays on SPDX 2.3 for callers that already have it in a script;
 # `spdx3` is a name of its own, matching how unpack selects the versions.
+# The extension is the format's whether the file holds a bare SBOM or, with
+# --attest or --sign, an in-toto statement or a sigstore bundle wrapping it.
 case "${FORMAT}" in
   spdx)            EXTRACT_FMT="spdx"      ; EXT="spdx.json"  ;;
   spdx3)           EXTRACT_FMT="spdx3"     ; EXT="spdx3.json" ;;
@@ -44,6 +56,21 @@ EXTRACT_ARGS=(--multi -f "${EXTRACT_FMT}" -o "${OUTPUT_PATH}" --output-prefix "$
 
 if [[ "${FILES_FLAG}" == "true" ]]; then
   EXTRACT_ARGS+=(--files)
+fi
+
+# --sign implies --attest in unpack, but pass both when asked to keep the
+# invocation explicit in the logs.
+if [[ "${ATTEST_FLAG}" == "true" ]]; then
+  EXTRACT_ARGS+=(--attest)
+fi
+
+if [[ "${SIGN_FLAG}" == "true" ]]; then
+  EXTRACT_ARGS+=(--sign)
+fi
+
+# Leave the flag out when unset so unpack's own default applies.
+if [[ -n "${NETWORKING}" ]]; then
+  EXTRACT_ARGS+=(--networking "${NETWORKING}")
 fi
 
 # Ignore patterns
@@ -122,7 +149,7 @@ for f in "${OUTPUT_PATH}/${PREFIX}"*".${EXT}"; do
   basename="$(basename "${f}")"
   # Check if this looks like a top-level codebase file (prefix + ecosystem + ext only)
   stripped="${basename#"${PREFIX}"}"
-  stripped="${stripped%.${EXT}}"
+  stripped="${stripped%."${EXT}"}"
   # A top-level codebase has no dashes in the stripped part (just the ecosystem name)
   if [[ "${stripped}" != *-* && -n "${stripped}" ]]; then
     TOP_FILES+=("${f}")
