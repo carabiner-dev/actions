@@ -255,6 +255,52 @@ Signing requires the job to grant `id-token: write`.
 See the [snappy/snap README](snappy/snap/README.md) for the built-in specs,
 permission notes, and more examples.
 
+### bnd/commit
+
+The `bnd/commit` action attests a file to a git commit with
+[bnd](https://github.com/carabiner-dev/bnd): the file becomes the predicate
+of an in-toto statement whose subject is the commit, signed into a sigstore
+bundle with the workflow's own identity. bnd reads the file from the
+repository history as it was at the attested commit, which turns policy files
+a repository already carries (Security Insights, OpenEoX, and the like) into
+verifiable evidence about a specific commit.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  with:
+    path: SECURITY-INSIGHTS.yml
+    type: https://github.com/ossf/security-insights-spec
+    output: attestations/si.bundle.json
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `path` | One of `path`/`predicate` | `""` | Predicate file inside the repository, read at the attested commit |
+| `predicate` | One of `path`/`predicate` | `""` | Local predicate file, read from disk |
+| `type` | No | `""` | Predicate type URI; bnd autodetects when empty |
+| `yaml` | No | `""` | Convert YAML to JSON: `true`, `false`, or empty to go by extension |
+| `repo` | No | `.` | Repository to attest: the checkout, or a URL bnd clones |
+| `sha` | No | `""` | Commit to attest; defaults to HEAD. Exclusive with `tag` |
+| `tag` | No | `""` | Tag to attest instead of a commit. Exclusive with `sha` |
+| `output` | Yes | - | Path to write the signed bundle to |
+| `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
+
+#### Outputs
+
+| Output | Description |
+| --- | --- |
+| `attestation` | Path of the written attestation |
+
+`bnd commit` always signs, so the job must grant `id-token: write`. Attesting
+an older `sha` or a `tag` needs the commit in the checkout (`fetch-depth: 0`).
+
+See the [bnd/commit README](bnd/commit/README.md) for details on the attested
+commit and more examples.
+
 ### Go Actions
 
 | Action | Description |
