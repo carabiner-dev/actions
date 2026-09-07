@@ -70,12 +70,19 @@ permission is missing.
 With the default `repo: .`, bnd works from the workflow's checkout: the
 subject is the checkout's `HEAD` unless `sha` or `tag` names another commit,
 and the subject's URI is built from the checkout's `origin` remote (e.g.
-`git+https://github.com/org/repo@<sha>`).
+`git+ssh://github.com/org/repo@<sha>`). When a tag points at the attested
+commit, the subject is named after the tag.
 
 bnd clones the repository, even from a local path, so anything it attests has
 to be present in the checkout. The default `actions/checkout` depth of 1 is
-enough for `HEAD`; set `fetch-depth: 0` when attesting an older `sha` or a
-`tag`.
+enough for `HEAD`, including the merge commit a `pull_request` run checks out;
+set `fetch-depth: 0` when attesting an older `sha` or a `tag` so the commit
+and the tags are fetched. The action resolves `tag` and `HEAD` to a commit
+before calling bnd and fails with a clear error when the commit is missing.
+
+When `repo` is a URL, bnd clones it and checks the requested commit out, so a
+`sha` has to be reachable from one of the repository's branches or tags. A
+`tag` is resolved to its commit with `git ls-remote` first.
 
 The predicate named by `path` is read from the attested commit, not from the
 working tree. Files generated during the job are not in the history, so attest

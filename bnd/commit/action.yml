@@ -152,12 +152,50 @@ runs:
           args+=(--yaml)
         fi
 
-        if [ -n "${INPUTS_SHA}" ]; then
-          args+=(--sha "${INPUTS_SHA}")
+        # Resolve the commit to attest and hand it to bnd as --sha.
+        #
+        # bnd clones the repository with go-git and checks --sha out in the
+        # clone. Two things make that fragile here: bnd never applies --tag
+        # (the tag is validated but the clone stays at the default branch),
+        # and a go-git clone only carries the source's local branches and
+        # tags, so a checkout whose HEAD is detached with no local branch (a
+        # pull request merge ref, or a commit only known under refs/remotes/)
+        # cannot be cloned at all. So resolve tags and HEAD to a commit sha
+        # up front and, for local repositories, anchor that commit with a
+        # temporary branch for the duration of the call.
+        TARGET=""
+        if [ -d "${INPUTS_REPO}" ]; then
+          if [ -n "${INPUTS_TAG}" ]; then
+            TARGET="$(git -C "${INPUTS_REPO}" rev-parse --verify --quiet "refs/tags/${INPUTS_TAG}^{commit}")" || {
+              echo "::error::tag ${INPUTS_TAG} not found in ${INPUTS_REPO}; fetch the tags (e.g. actions/checkout with fetch-depth: 0)"
+              exit 1
+            }
+          elif [ -n "${INPUTS_SHA}" ]; then
+            TARGET="$(git -C "${INPUTS_REPO}" rev-parse --verify --quiet "${INPUTS_SHA}^{commit}")" || {
+              echo "::error::commit ${INPUTS_SHA} not found in ${INPUTS_REPO}; fetch more history (e.g. actions/checkout with fetch-depth: 0)"
+              exit 1
+            }
+          else
+            TARGET="$(git -C "${INPUTS_REPO}" rev-parse --verify "HEAD^{commit}")"
+          fi
+          TMP_REF="refs/heads/bnd-commit-tmp-$$"
+          git -C "${INPUTS_REPO}" update-ref "${TMP_REF}" "${TARGET}"
+          trap 'git -C "${INPUTS_REPO}" update-ref -d "${TMP_REF}"' EXIT
+        elif [ -n "${INPUTS_TAG}" ]; then
+          # Annotated tags list a peeled ^{} line with the commit; lightweight
+          # tags only list the plain line, which already is the commit.
+          TARGET="$(git ls-remote --tags "${INPUTS_REPO}" "refs/tags/${INPUTS_TAG}" "refs/tags/${INPUTS_TAG}^{}" \
+            | awk '/\^\{\}$/ { peeled = $1 } !/\^\{\}$/ { plain = $1 } END { print (peeled != "" ? peeled : plain) }')"
+          if [ -z "${TARGET}" ]; then
+            echo "::error::tag ${INPUTS_TAG} not found in ${INPUTS_REPO}"
+            exit 1
+          fi
+        elif [ -n "${INPUTS_SHA}" ]; then
+          TARGET="${INPUTS_SHA}"
         fi
 
-        if [ -n "${INPUTS_TAG}" ]; then
-          args+=(--tag "${INPUTS_TAG}")
+        if [ -n "${TARGET}" ]; then
+          args+=(--sha "${TARGET}")
         fi
 
         mkdir -p "$(dirname "${INPUTS_OUTPUT}")"
