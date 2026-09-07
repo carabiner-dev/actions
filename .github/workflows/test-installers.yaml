@@ -135,3 +135,33 @@ jobs:
         run: |
           test -s "${ATTESTATION}"
           jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
+
+  test-bnd-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Attest the dependabot config to the commit with bnd/commit
+        id: commit
+        uses: ./bnd/commit
+        with:
+          path: .github/dependabot.yaml
+          type: https://example.com/dependabot-config/v1
+          output: attestations/dependabot.bundle.json
+
+      - name: Verify the signed bundle attests HEAD
+        shell: bash
+        env:
+          ATTESTATION: ${{ steps.commit.outputs.attestation }}
+        run: |
+          test -s "${ATTESTATION}"
+          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          bnd extract statement "${ATTESTATION}" \
+            | jq -e --arg sha "${HEAD_SHA}" \
+                '.predicateType == "https://example.com/dependabot-config/v1" and .subject[0].digest.gitCommit == $sha and (.predicate.updates | length) > 0'

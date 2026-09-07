@@ -1,0 +1,169 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Attest Commit'
+author: "carabiner-dev"
+description: 'Attests a file from the repository (or a local predicate) to a git commit using bnd'
+branding:
+  icon: 'git-commit'
+  color: 'green'
+
+inputs:
+  path:
+    description: >
+      Path of the predicate file inside the repository, read as it was at the
+      attested commit (e.g. SECURITY-INSIGHTS.yml). Set either path or
+      predicate, not both.
+    required: false
+    default: ''
+  predicate:
+    description: >
+      Path of a local predicate file to attest to the commit, read from disk
+      rather than from the repository history. Set either path or predicate,
+      not both.
+    required: false
+    default: ''
+  type:
+    description: >
+      Predicate type URI to declare in the attestation. When empty, bnd tries
+      to detect it from the predicate contents; set it for formats bnd does
+      not recognize.
+    required: false
+    default: ''
+  yaml:
+    description: >
+      Convert the predicate from YAML to JSON: true, false, or empty to decide
+      from the file extension (.yaml and .yml are converted).
+    required: false
+    default: ''
+  repo:
+    description: >
+      Repository to attest: a local path (the checkout, by default) or a URL
+      bnd clones. Older commits and tags must be present in the local checkout,
+      so use fetch-depth 0 when attesting anything other than HEAD.
+    required: false
+    default: '.'
+  sha:
+    description: 'Commit to attest. Defaults to the HEAD of the repository. Set either sha or tag, not both.'
+    required: false
+    default: ''
+  tag:
+    description: 'Tag to attest instead of a commit. Set either sha or tag, not both.'
+    required: false
+    default: ''
+  output:
+    description: 'Path to write the signed bundle to. Parent directories are created as needed.'
+    required: true
+  bnd-version:
+    description: 'bnd version to install. Defaults to the version shipped by the bnd installer.'
+    required: false
+    default: ''
+
+outputs:
+  attestation:
+    description: 'Path of the written attestation, as given in the output input'
+    value: ${{ steps.commit.outputs.attestation }}
+
+runs:
+  using: composite
+  steps:
+    # When a version is set, pass it through; otherwise install with no version
+    # so the installer applies its own default and the pinned tool version
+    # stays in one place.
+    - if: ${{ inputs.bnd-version == '' }}
+      name: bnd Setup
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.bnd-version != '' }}
+      name: bnd Setup (pinned)
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.bnd-version }}
+
+    - id: commit
+      name: Attest commit
+      shell: bash
+      env:
+        INPUTS_PATH: ${{ inputs.path }}
+        INPUTS_PREDICATE: ${{ inputs.predicate }}
+        INPUTS_TYPE: ${{ inputs.type }}
+        INPUTS_YAML: ${{ inputs.yaml }}
+        INPUTS_REPO: ${{ inputs.repo }}
+        INPUTS_SHA: ${{ inputs.sha }}
+        INPUTS_TAG: ${{ inputs.tag }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+
+        # bnd commit always signs, using the job's workload identity, which is
+        # only available when the workflow grants id-token: write. Fail early
+        # with a useful message.
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::Signing requires the job to grant the 'id-token: write' permission."
+          exit 1
+        fi
+
+        if [ -n "${INPUTS_PATH}" ] && [ -n "${INPUTS_PREDICATE}" ]; then
+          echo "::error::path and predicate are mutually exclusive, set only one"
+          exit 1
+        fi
+        if [ -z "${INPUTS_PATH}" ] && [ -z "${INPUTS_PREDICATE}" ]; then
+          echo "::error::one of path or predicate is required"
+          exit 1
+        fi
+        if [ -n "${INPUTS_SHA}" ] && [ -n "${INPUTS_TAG}" ]; then
+          echo "::error::sha and tag are mutually exclusive, set only one"
+          exit 1
+        fi
+        if [ -z "${INPUTS_REPO}" ]; then
+          echo "::error::repo must not be empty"
+          exit 1
+        fi
+
+        # Decide on the YAML conversion: explicit input first, then the
+        # predicate file's extension.
+        PREDICATE_FILE="${INPUTS_PATH:-${INPUTS_PREDICATE}}"
+        case "${INPUTS_YAML}" in
+          true|false) YAML="${INPUTS_YAML}" ;;
+          "")
+            case "${PREDICATE_FILE}" in
+              *.yaml|*.yml) YAML="true" ;;
+              *)            YAML="false" ;;
+            esac
+            ;;
+          *)
+            echo "::error::yaml must be true, false or empty; got: ${INPUTS_YAML}"
+            exit 1
+            ;;
+        esac
+
+        args=(commit --repo "${INPUTS_REPO}" --out "${INPUTS_OUTPUT}")
+
+        if [ -n "${INPUTS_PATH}" ]; then
+          args+=(--predicate-git-path "${INPUTS_PATH}")
+        else
+          args+=(--predicate "${INPUTS_PREDICATE}")
+        fi
+
+        if [ -n "${INPUTS_TYPE}" ]; then
+          args+=(--type "${INPUTS_TYPE}")
+        fi
+
+        if [ "${YAML}" = "true" ]; then
+          args+=(--yaml)
+        fi
+
+        if [ -n "${INPUTS_SHA}" ]; then
+          args+=(--sha "${INPUTS_SHA}")
+        fi
+
+        if [ -n "${INPUTS_TAG}" ]; then
+          args+=(--tag "${INPUTS_TAG}")
+        fi
+
+        mkdir -p "$(dirname "${INPUTS_OUTPUT}")"
+
+        echo "::group::bnd ${args[*]}"
+        bnd "${args[@]}"
+        echo "::endgroup::"
+
+        echo "attestation=${INPUTS_OUTPUT}" >> "${GITHUB_OUTPUT}"
