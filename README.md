@@ -164,8 +164,13 @@ ecosystem or specific codebase IDs.
 | `ecosystems` | No | `""` | Newline-separated list of ecosystems to include |
 | `ignore` | No | `""` | Newline-separated list of path patterns to ignore |
 | `files` | No | `false` | Include file information in generated SBOMs |
-| `format` | No | `spdx` | SBOM format: `spdx` or `cyclonedx` |
-| `output-path` | No | `.` | Directory to write SBOMs to |
+| `format` | No | `spdx3` | SBOM format: `spdx` (2.3), `spdx3` (3.0.1) or `cyclonedx` |
+| `attest` | No | `false` | Wrap the generated SBOMs in in-toto attestations |
+| `sign` | No | `false` | Sign the attestations into sigstore bundles (implies `attest`) |
+| `networking` | No | `""` | Network access level for unpack: `essential`, `full` or `disabled` |
+| `output-path` | No | `""` | Directory to write SBOMs to |
+
+Signing requires the job to grant `id-token: write`.
 
 See the [sbom/source README](sbom/source/README.md) for full documentation,
 filename conventions, and more examples.

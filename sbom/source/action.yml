@@ -37,6 +37,23 @@ inputs:
     description: 'SBOM format to generate: spdx (2.3), spdx3 (3.0.1) or cyclonedx (cdx)'
     required: false
     default: 'spdx3'
+  attest:
+    description: 'Wrap the generated SBOMs in in-toto attestations'
+    required: false
+    default: 'false'
+  sign:
+    description: >
+      Sign the attestations into sigstore bundles (implies attest).
+      Requires the job to grant the `id-token: write` permission.
+    required: false
+    default: 'false'
+  networking:
+    description: >
+      Network access level unpack may use while resolving dependencies:
+      essential, full or disabled. When empty, unpack's own default
+      (essential) applies.
+    required: false
+    default: ''
   output-path:
     description: >
       Directory where generated SBOMs will be written.
@@ -71,6 +88,9 @@ runs:
         INPUT_IGNORE: ${{ inputs.ignore }}
         INPUT_FILES: ${{ inputs.files }}
         INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_ATTEST: ${{ inputs.attest }}
+        INPUT_SIGN: ${{ inputs.sign }}
+        INPUT_NETWORKING: ${{ inputs.networking }}
         INPUT_OUTPUT_PATH: ${{ inputs.output-path }}
       run: |
         ${{ github.action_path }}/generate.sh

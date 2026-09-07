@@ -11,6 +11,16 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 FORMAT="${INPUT_FORMAT:-spdx}"
 FILES_FLAG="${INPUT_FILES:-false}"
+ATTEST_FLAG="${INPUT_ATTEST:-false}"
+SIGN_FLAG="${INPUT_SIGN:-false}"
+NETWORKING="${INPUT_NETWORKING:-}"
+
+# Signing uses the job's workload identity, which is only available when the
+# workflow grants id-token: write. Fail early with a useful message.
+if [[ "${SIGN_FLAG}" == "true" && -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]]; then
+  echo "::error::Signing requires the job to grant the 'id-token: write' permission."
+  exit 1
+fi
 
 if [[ -n "${INPUT_OUTPUT_PATH:-}" ]]; then
   OUTPUT_PATH="${INPUT_OUTPUT_PATH}"
@@ -21,14 +31,29 @@ fi
 # `spdx` stays on SPDX 2.3 for callers that already have it in a script;
 # `spdx3` is a name of its own, matching how unpack selects the versions.
 case "${FORMAT}" in
-  spdx)            EXTRACT_FMT="spdx"      ; EXT="spdx.json"  ;;
-  spdx3)           EXTRACT_FMT="spdx3"     ; EXT="spdx3.json" ;;
-  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; EXT="cdx.json"   ;;
+  spdx)            EXTRACT_FMT="spdx"      ; FMT_EXT="spdx"  ;;
+  spdx3)           EXTRACT_FMT="spdx3"     ; FMT_EXT="spdx3" ;;
+  cyclonedx|cdx)   EXTRACT_FMT="cyclonedx" ; FMT_EXT="cdx"   ;;
   *)
     echo "::error::Unsupported format '${FORMAT}'. Use 'spdx', 'spdx3' or 'cyclonedx'."
     exit 1
     ;;
 esac
+
+# The extension unpack writes. It only reflects the SBOM format: unpack keeps
+# it even when --attest or --sign wrap the SBOM (those files are renamed
+# further down).
+EXT="${FMT_EXT}.json"
+
+# What wraps the SBOM decides the final extension, following the sbom/image
+# convention: .intoto.json for in-toto statements and .bundle.json for
+# sigstore bundles. Empty means a bare SBOM, left as unpack named it.
+WRAP=""
+if [[ "${SIGN_FLAG}" == "true" ]]; then
+  WRAP="bundle"
+elif [[ "${ATTEST_FLAG}" == "true" ]]; then
+  WRAP="intoto"
+fi
 
 # Derive the output prefix from the GitHub org and repo name.
 OWNER="${GITHUB_REPOSITORY%%/*}"
@@ -44,6 +69,21 @@ EXTRACT_ARGS=(--multi -f "${EXTRACT_FMT}" -o "${OUTPUT_PATH}" --output-prefix "$
 
 if [[ "${FILES_FLAG}" == "true" ]]; then
   EXTRACT_ARGS+=(--files)
+fi
+
+# --sign implies --attest in unpack, but pass both when asked to keep the
+# invocation explicit in the logs.
+if [[ "${ATTEST_FLAG}" == "true" ]]; then
+  EXTRACT_ARGS+=(--attest)
+fi
+
+if [[ "${SIGN_FLAG}" == "true" ]]; then
+  EXTRACT_ARGS+=(--sign)
+fi
+
+# Leave the flag out when unset so unpack's own default applies.
+if [[ -n "${NETWORKING}" ]]; then
+  EXTRACT_ARGS+=(--networking "${NETWORKING}")
 fi
 
 # Ignore patterns
@@ -104,6 +144,26 @@ fi
 if [[ "${FORMAT}" == "spdx3" ]] && \
    ! compgen -G "${OUTPUT_PATH}/${PREFIX}*.spdx3.json" > /dev/null; then
   EXT="json"
+  FMT_EXT=""
+fi
+
+# ---------------------------------------------------------------------------
+# Rename wrapped outputs.
+#
+# unpack names every file after the SBOM format even when --attest or --sign
+# wrap it in an in-toto statement or a sigstore bundle, so a consumer reading
+# the directory could not tell a bare SBOM from a signed one. Move them to the
+# sbom/image convention instead: <name>.<fmt>.intoto.json for statements and
+# <name>.<fmt>.bundle.json for bundles (the <fmt> part is dropped when unpack
+# wrote a bare .json, see above).
+# ---------------------------------------------------------------------------
+if [[ -n "${WRAP}" ]]; then
+  NEW_EXT="${FMT_EXT:+${FMT_EXT}.}${WRAP}.json"
+  for f in "${OUTPUT_PATH}/${PREFIX}"*".${EXT}"; do
+    [[ -f "${f}" ]] || continue
+    mv "${f}" "${f%."${EXT}"}.${NEW_EXT}"
+  done
+  EXT="${NEW_EXT}"
 fi
 
 # ---------------------------------------------------------------------------
@@ -122,7 +182,7 @@ for f in "${OUTPUT_PATH}/${PREFIX}"*".${EXT}"; do
   basename="$(basename "${f}")"
   # Check if this looks like a top-level codebase file (prefix + ecosystem + ext only)
   stripped="${basename#"${PREFIX}"}"
-  stripped="${stripped%.${EXT}}"
+  stripped="${stripped%."${EXT}"}"
   # A top-level codebase has no dashes in the stripped part (just the ecosystem name)
   if [[ "${stripped}" != *-* && -n "${stripped}" ]]; then
     TOP_FILES+=("${f}")
