@@ -165,3 +165,47 @@ jobs:
           bnd extract statement "${ATTESTATION}" \
             | jq -e --arg sha "${HEAD_SHA}" \
                 '.predicateType == "https://example.com/dependabot-config/v1" and .subject[0].digest.gitCommit == $sha and (.predicate.updates | length) > 0'
+
+  test-bnd-pack:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch release provenance bundles to pack
+        shell: bash
+        run: |
+          mkdir -p bundles
+          for spec in snappy:v0.2.6 unpack:v0.3.2 ampel:v1.3.7; do
+            tool="${spec%%:*}"; version="${spec##*:}"
+            curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
+              -o "bundles/${tool}-${version}.provenance.json" \
+              "https://github.com/carabiner-dev/${tool}/releases/download/${version}/${tool}-${version}.provenance.json"
+          done
+          # A jsonl input to merge, with no trailing newline on purpose.
+          curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
+            -o bnd.attestations.jsonl \
+            https://github.com/carabiner-dev/bnd/releases/download/v0.4.4/attestations.jsonl
+
+      - name: Pack the bundles with bnd/pack
+        id: pack
+        uses: ./bnd/pack
+        with:
+          bundles: |
+            bundles/
+            bnd.attestations.jsonl
+          output: out/attestations.jsonl
+
+      - name: Verify the packed file
+        shell: bash
+        env:
+          ATTESTATIONS: ${{ steps.pack.outputs.attestations }}
+          COUNT: ${{ steps.pack.outputs.count }}
+        run: |
+          test "${COUNT}" = "4"
+          test "$(wc -l < "${ATTESTATIONS}")" = "4"
+          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATIONS}" | grep -c true | grep -qx 4
+          bnd inspect "${ATTESTATIONS}" > /dev/null
