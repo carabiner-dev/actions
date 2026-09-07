@@ -1,0 +1,146 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Pack Attestations'
+author: "carabiner-dev"
+description: 'Packs attestation bundles into a single jsonl file using bnd'
+branding:
+  icon: 'package'
+  color: 'green'
+
+inputs:
+  bundles:
+    description: >
+      Newline-separated paths to pack: bundle files, directories (every .json
+      file at their top level is packed) and .jsonl files, whose attestations
+      are appended one per line.
+    required: true
+  output:
+    description: 'Path of the jsonl file to write. Parent directories are created as needed; an existing file is replaced.'
+    required: false
+    default: 'attestations.jsonl'
+  upload-artifact:
+    description: 'Upload the packed file as a workflow artifact'
+    required: false
+    default: 'false'
+  artifact-name:
+    description: 'Name of the uploaded artifact. Defaults to the file name of output.'
+    required: false
+    default: ''
+  bnd-version:
+    description: 'bnd version to install. Defaults to the version shipped by the bnd installer.'
+    required: false
+    default: ''
+
+outputs:
+  attestations:
+    description: 'Path of the packed jsonl file, as given in the output input'
+    value: ${{ steps.pack.outputs.attestations }}
+  count:
+    description: 'Number of attestations in the packed file'
+    value: ${{ steps.pack.outputs.count }}
+
+runs:
+  using: composite
+  steps:
+    # When a version is set, pass it through; otherwise install with no version
+    # so the installer applies its own default and the pinned tool version
+    # stays in one place.
+    - if: ${{ inputs.bnd-version == '' }}
+      name: bnd Setup
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.bnd-version != '' }}
+      name: bnd Setup (pinned)
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.bnd-version }}
+
+    - id: pack
+      name: Pack attestations
+      shell: bash
+      env:
+        INPUTS_BUNDLES: ${{ inputs.bundles }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
+        INPUTS_ARTIFACT_NAME: ${{ inputs.artifact-name }}
+      run: |
+        set -euo pipefail
+
+        # Sort the inputs: bnd packs bundle files and directories, while
+        # .jsonl files are appended here line by line (bnd would flatten a
+        # whole jsonl file into one line). Trim with parameter expansion
+        # rather than xargs so unusual path characters survive intact.
+        pack_paths=()
+        jsonl_paths=()
+        while IFS= read -r line; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "${line}" ] && continue
+          if [ ! -e "${line}" ]; then
+            echo "::error::bundle path not found: ${line}"
+            exit 1
+          fi
+          case "${line}" in
+            *.jsonl) jsonl_paths+=("${line}") ;;
+            *)       pack_paths+=("${line}") ;;
+          esac
+        done <<< "${INPUTS_BUNDLES}"
+
+        if [ "${#pack_paths[@]}" -eq 0 ] && [ "${#jsonl_paths[@]}" -eq 0 ]; then
+          echo "::error::bundles must list at least one path"
+          exit 1
+        fi
+
+        # Assemble in a temporary file so the output can also be one of the
+        # inputs, and a failure never leaves a partial file behind. bnd
+        # refuses to write to an existing file, so hand it a path inside a
+        # fresh directory rather than a file mktemp already created.
+        TMP_DIR="$(mktemp -d)"
+        trap 'rm -rf "${TMP_DIR}"' EXIT
+        TMP="${TMP_DIR}/attestations.jsonl"
+
+        if [ "${#pack_paths[@]}" -gt 0 ]; then
+          echo "::group::bnd pack ${pack_paths[*]}"
+          bnd pack --out "${TMP}" "${pack_paths[@]}"
+          echo "::endgroup::"
+        fi
+
+        for f in "${jsonl_paths[@]}"; do
+          cat "${f}" >> "${TMP}"
+          # Terminate the last line in case the file has no trailing newline.
+          echo >> "${TMP}"
+        done
+
+        # bnd writes a blank line after each directory it packs; drop those
+        # and any other empty lines.
+        CLEAN="${TMP_DIR}/clean.jsonl"
+        grep -v '^[[:space:]]*$' "${TMP}" > "${CLEAN}" || true
+
+        COUNT="$(wc -l < "${CLEAN}")"
+        if [ "${COUNT}" -eq 0 ]; then
+          echo "::error::no attestations found in the given paths"
+          exit 1
+        fi
+
+        # bnd packs every .json file in a directory without looking inside,
+        # so make sure each line parses as JSON before publishing the file.
+        if ! jq -c '.' "${CLEAN}" >/dev/null 2>&1; then
+          echo "::error::the packed data contains a line that is not valid JSON; keep only attestation bundles in the packed directories"
+          exit 1
+        fi
+
+        mkdir -p "$(dirname "${INPUTS_OUTPUT}")"
+        mv "${CLEAN}" "${INPUTS_OUTPUT}"
+
+        echo "Packed ${COUNT} attestation(s) into ${INPUTS_OUTPUT}"
+        {
+          echo "attestations=${INPUTS_OUTPUT}"
+          echo "count=${COUNT}"
+          echo "artifact-name=${INPUTS_ARTIFACT_NAME:-$(basename "${INPUTS_OUTPUT}")}"
+        } >> "${GITHUB_OUTPUT}"
+
+    - if: ${{ inputs.upload-artifact == 'true' }}
+      name: Upload packed attestations
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ steps.pack.outputs.artifact-name }}
+        path: ${{ inputs.output }}

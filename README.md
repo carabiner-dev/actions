@@ -301,6 +301,43 @@ an older `sha` or a `tag` needs the commit in the checkout (`fetch-depth: 0`).
 See the [bnd/commit README](bnd/commit/README.md) for details on the attested
 commit and more examples.
 
+### bnd/pack
+
+The `bnd/pack` action packs attestation bundles into a single jsonl file with
+[bnd](https://github.com/carabiner-dev/bnd), one attestation per line, ready
+to upload as an artifact, attach to a release or hand to AMPEL through its
+`jsonl:` collector. It packs bundle files and directories, merges existing
+`.jsonl` files line by line, and checks that every line of the result is JSON.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/bnd/pack@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  with:
+    bundles: attestations/
+    upload-artifact: 'true'
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `bundles` | Yes | - | Newline-separated bundle files, directories (top-level `.json` files) and `.jsonl` files to pack |
+| `output` | No | `attestations.jsonl` | Path of the jsonl file to write |
+| `upload-artifact` | No | `false` | Upload the packed file as a workflow artifact |
+| `artifact-name` | No | `""` | Name of the uploaded artifact; defaults to the output file name |
+| `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
+
+#### Outputs
+
+| Output | Description |
+| --- | --- |
+| `attestations` | Path of the packed jsonl file |
+| `count` | Number of attestations in the packed file |
+
+See the [bnd/pack README](bnd/pack/README.md) for what gets packed and more
+examples.
+
 ### Go Actions
 
 | Action | Description |
