@@ -209,3 +209,44 @@ jobs:
           test "$(wc -l < "${ATTESTATIONS}")" = "4"
           jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATIONS}" | grep -c true | grep -qx 4
           bnd inspect "${ATTESTATIONS}" > /dev/null
+
+  test-vexflow-assemble:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # This repository has no dependency manifests for vexflow to scan, so
+      # assemble the document of a Go repository in the organization instead.
+      - name: Resolve the commit to name as the product
+        id: target
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "sha=$(gh api repos/carabiner-dev/bnd/commits/main --jq .sha)" >> "${GITHUB_OUTPUT}"
+
+      - name: Assemble and sign the VEX document with vexflow/assemble
+        id: assemble
+        uses: ./vexflow/assemble
+        with:
+          repo: carabiner-dev/bnd
+          branch: main
+          product: sha1:${{ steps.target.outputs.sha }}
+          output: attestations/openvex.bundle.json
+
+      - name: Verify the signed bundle
+        shell: bash
+        env:
+          ATTESTATION: ${{ steps.assemble.outputs.attestation }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          test -s "${ATTESTATION}"
+          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
+          bnd extract statement "${ATTESTATION}" \
+            | jq -e --arg sha "${SHA}" \
+                '.predicateType == "https://openvex.dev/ns/v0.2.0" and .subject[0].digest.sha1 == $sha and .predicate["@context"] == "https://openvex.dev/ns/v0.2.0"'

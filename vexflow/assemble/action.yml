@@ -1,0 +1,171 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Assemble VEX Document'
+author: "carabiner-dev"
+description: 'Assembles the OpenVEX document of a branch with vexflow and signs it with bnd'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  repo:
+    description: 'Repository whose branch to assemble the VEX document for, as an org/name slug.'
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: >
+      Branch to assemble the document for. Defaults to the repository's default
+      branch, or to main when the event carries no repository information.
+    required: false
+    default: ${{ github.event.repository.default_branch }}
+  product:
+    description: >
+      Newline-separated products the statements apply to, as hashes
+      (algo:value, e.g. sha1:<commit>) or paths to files. When signing they
+      are also the subjects of the attestation. Defaults to the commit the
+      workflow runs for.
+    required: false
+    default: sha1:${{ github.sha }}
+  triage-repo:
+    description: >
+      Repository holding the triage data, as an org/name slug. Defaults to the
+      .vexflow repository of the organization that owns repo.
+    required: false
+    default: ''
+  output:
+    description: >
+      Path to write the result to: a signed sigstore bundle or, when sign is
+      false, the bare OpenVEX document. Parent directories are created as
+      needed.
+    required: true
+  sign:
+    description: >
+      Wrap the document in an in-toto attestation with the products as subjects
+      and sign it with the job's workload identity. Requires the job to grant
+      the `id-token: write` permission.
+    required: false
+    default: 'true'
+  token:
+    description: 'Token vexflow uses to read the triage repository, exported as GITHUB_TOKEN.'
+    required: false
+    default: ${{ github.token }}
+  vexflow-version:
+    description: 'vexflow version to install. Defaults to the version shipped by the vexflow installer.'
+    required: false
+    default: ''
+  bnd-version:
+    description: 'bnd version to install for signing. Defaults to the version shipped by the bnd installer.'
+    required: false
+    default: ''
+
+outputs:
+  attestation:
+    description: 'Path of the written file, as given in the output input'
+    value: ${{ steps.assemble.outputs.attestation }}
+
+runs:
+  using: composite
+  steps:
+    # When a version is set, pass it through; otherwise install with no version
+    # so the installer applies its own default and the pinned tool versions
+    # stay in one place.
+    - if: ${{ inputs.vexflow-version == '' }}
+      name: vexflow Setup
+      uses: carabiner-dev/actions/install/vexflow@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.vexflow-version != '' }}
+      name: vexflow Setup (pinned)
+      uses: carabiner-dev/actions/install/vexflow@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.vexflow-version }}
+
+    - if: ${{ inputs.sign == 'true' && inputs.bnd-version == '' }}
+      name: bnd Setup
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.sign == 'true' && inputs.bnd-version != '' }}
+      name: bnd Setup (pinned)
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.bnd-version }}
+
+    - id: assemble
+      name: Assemble VEX document
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        INPUTS_REPO: ${{ inputs.repo }}
+        INPUTS_BRANCH: ${{ inputs.branch }}
+        INPUTS_PRODUCT: ${{ inputs.product }}
+        INPUTS_TRIAGE_REPO: ${{ inputs.triage-repo }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
+        INPUTS_SIGN: ${{ inputs.sign }}
+      run: |
+        set -euo pipefail
+
+        # Signing uses the job's workload identity, which is only available
+        # when the workflow grants id-token: write. Fail early with a useful
+        # message.
+        if [ "${INPUTS_SIGN}" = "true" ] && [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::Signing requires the job to grant the 'id-token: write' permission."
+          exit 1
+        fi
+
+        if [ -z "${INPUTS_REPO}" ]; then
+          echo "::error::repo must not be empty"
+          exit 1
+        fi
+
+        args=(assemble --repo "${INPUTS_REPO}")
+
+        # Leave the flag out when unset so vexflow's own default applies.
+        if [ -n "${INPUTS_BRANCH}" ]; then
+          args+=(--branch "${INPUTS_BRANCH}")
+        fi
+
+        if [ -n "${INPUTS_TRIAGE_REPO}" ]; then
+          args+=(--triage-repo "${INPUTS_TRIAGE_REPO}")
+        fi
+
+        # One --product per non-empty line; the same values become the
+        # attestation subjects when signing. Trim with parameter expansion
+        # rather than xargs so unusual path characters survive intact.
+        subjects=()
+        while IFS= read -r line; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "${line}" ] && continue
+          args+=(--product "${line}")
+          subjects+=(--subject "${line}")
+        done <<< "${INPUTS_PRODUCT}"
+
+        if [ "${INPUTS_SIGN}" = "true" ] && [ "${#subjects[@]}" -eq 0 ]; then
+          echo "::error::at least one product is required to sign the document, it becomes the attestation subject"
+          exit 1
+        fi
+
+        # vexflow writes the document to stdout (releases up to v0.0.1-pre3
+        # ignore --out) and its progress log to stderr, so capture stdout into
+        # a temporary file. Working in a temporary directory also means a
+        # failed run never leaves a partial file at the output path.
+        TMP_DIR="$(mktemp -d)"
+        trap 'rm -rf "${TMP_DIR}"' EXIT
+        DOC="${TMP_DIR}/openvex.json"
+
+        echo "::group::vexflow ${args[*]}"
+        vexflow "${args[@]}" > "${DOC}"
+        echo "::endgroup::"
+
+        if [ ! -s "${DOC}" ]; then
+          echo "::error::vexflow produced no document"
+          exit 1
+        fi
+
+        mkdir -p "$(dirname "${INPUTS_OUTPUT}")"
+
+        if [ "${INPUTS_SIGN}" = "true" ]; then
+          bnd predicate --type "https://openvex.dev/ns/v0.2.0" "${subjects[@]}" --out "${INPUTS_OUTPUT}" "${DOC}"
+        else
+          mv "${DOC}" "${INPUTS_OUTPUT}"
+        fi
+
+        echo "attestation=${INPUTS_OUTPUT}" >> "${GITHUB_OUTPUT}"
