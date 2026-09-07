@@ -210,6 +210,51 @@ Signing requires the job to grant `id-token: write`.
 See the [sbom/image README](sbom/image/README.md) for full documentation,
 filename conventions, private registry notes, and more examples.
 
+### snappy/snap
+
+The `snappy/snap` action takes an attestable snapshot of an API response with
+[snappy](https://github.com/carabiner-dev/snappy) and signs it into a sigstore
+bundle with bnd, using the workflow's own identity. A snapshot follows a spec
+naming the endpoint to call and the response fields to keep; snappy ships
+built-in specs for GitHub repositories, organizations, branch rules and more.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  with:
+    spec: builtin:github/branch-rules.yaml
+    vars: |
+      ORG=${{ github.repository_owner }}
+      REPO=${{ github.event.repository.name }}
+      BRANCH=main
+    output: attestations/branch.bundle.json
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `spec` | Yes | - | Spec file path, or a built-in spec such as `builtin:github/repo.yaml` |
+| `vars` | No | `""` | Newline-separated `NAME=value` pairs substituted into the spec |
+| `output` | Yes | - | Path to write the signed bundle (or the unsigned statement) to |
+| `sign` | No | `true` | Sign the statement into a sigstore bundle with the job's identity |
+| `platform` | No | `""` | `github` or `gitlab`; auto-detected from the spec when empty |
+| `token` | No | `${{ github.token }}` | Token for the GitHub API calls, exported as `GITHUB_TOKEN` |
+| `snappy-version` | No | `""` | snappy version to install; defaults to the installer's pin |
+| `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
+
+#### Outputs
+
+| Output | Description |
+| --- | --- |
+| `attestation` | Path of the written attestation |
+
+Signing requires the job to grant `id-token: write`.
+
+See the [snappy/snap README](snappy/snap/README.md) for the built-in specs,
+permission notes, and more examples.
+
 ### Go Actions
 
 | Action | Description |

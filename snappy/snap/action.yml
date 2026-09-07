@@ -1,0 +1,143 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+name: 'Snapshot API Data'
+author: "carabiner-dev"
+description: 'Takes an attestable snapshot of an API response with snappy and signs it with bnd'
+branding:
+  icon: 'camera'
+  color: 'green'
+
+inputs:
+  spec:
+    description: >
+      Snapshot spec to take: a path to a spec file, or one of snappy's built-in
+      specs using the builtin: prefix (e.g. builtin:github/repo.yaml).
+    required: true
+  vars:
+    description: >
+      Newline-separated NAME=value pairs substituted into the spec's ${NAME}
+      variables. Values cannot contain commas, snappy splits --var on them.
+    required: false
+    default: ''
+  output:
+    description: >
+      Path to write the attestation to: a signed sigstore bundle or, when sign
+      is false, the unsigned in-toto statement. Parent directories are created
+      as needed.
+    required: true
+  sign:
+    description: >
+      Sign the statement into a sigstore bundle with the job's workload
+      identity. Requires the job to grant the `id-token: write` permission.
+    required: false
+    default: 'true'
+  platform:
+    description: >
+      API platform the spec targets: github or gitlab. Auto-detected from the
+      spec's endpoint when empty.
+    required: false
+    default: ''
+  token:
+    description: >
+      Token snappy uses to call the GitHub API, exported as GITHUB_TOKEN. For
+      GitLab specs set GITLAB_TOKEN in the step's env instead.
+    required: false
+    default: ${{ github.token }}
+  snappy-version:
+    description: 'snappy version to install. Defaults to the version shipped by the snappy installer.'
+    required: false
+    default: ''
+  bnd-version:
+    description: 'bnd version to install for signing. Defaults to the version shipped by the bnd installer.'
+    required: false
+    default: ''
+
+outputs:
+  attestation:
+    description: 'Path of the written attestation, as given in the output input'
+    value: ${{ steps.snap.outputs.attestation }}
+
+runs:
+  using: composite
+  steps:
+    # When a version is set, pass it through; otherwise install with no version
+    # so the installer applies its own default and the pinned tool versions
+    # stay in one place.
+    - if: ${{ inputs.snappy-version == '' }}
+      name: snappy Setup
+      uses: carabiner-dev/actions/install/snappy@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.snappy-version != '' }}
+      name: snappy Setup (pinned)
+      uses: carabiner-dev/actions/install/snappy@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.snappy-version }}
+
+    - if: ${{ inputs.sign == 'true' && inputs.bnd-version == '' }}
+      name: bnd Setup
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - if: ${{ inputs.sign == 'true' && inputs.bnd-version != '' }}
+      name: bnd Setup (pinned)
+      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      with:
+        version: ${{ inputs.bnd-version }}
+
+    - id: snap
+      name: Take snapshot
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        INPUTS_SPEC: ${{ inputs.spec }}
+        INPUTS_VARS: ${{ inputs.vars }}
+        INPUTS_OUTPUT: ${{ inputs.output }}
+        INPUTS_SIGN: ${{ inputs.sign }}
+        INPUTS_PLATFORM: ${{ inputs.platform }}
+      run: |
+        set -euo pipefail
+
+        # Signing uses the job's workload identity, which is only available
+        # when the workflow grants id-token: write. Fail early with a useful
+        # message.
+        if [ "${INPUTS_SIGN}" = "true" ] && [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::Signing requires the job to grant the 'id-token: write' permission."
+          exit 1
+        fi
+
+        args=(snap --attest --spec "${INPUTS_SPEC}")
+
+        if [ -n "${INPUTS_PLATFORM}" ]; then
+          args+=(--platform "${INPUTS_PLATFORM}")
+        fi
+
+        # One --var per non-empty line. Trim with parameter expansion rather
+        # than xargs so quotes and backslashes in values survive intact.
+        while IFS= read -r line; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "${line}" ] && continue
+          name="${line%%=*}"
+          if [ -z "${name}" ] || [ "${name}" = "${line}" ]; then
+            echo "::error::vars entries must be NAME=value, got: ${line}"
+            exit 1
+          fi
+          args+=(--var "${line}")
+        done <<< "${INPUTS_VARS}"
+
+        mkdir -p "$(dirname "${INPUTS_OUTPUT}")"
+
+        # Snap into a temporary file so a failed run never leaves a partial
+        # attestation behind at the output path.
+        STATEMENT="$(mktemp)"
+        trap 'rm -f "${STATEMENT}"' EXIT
+
+        echo "::group::snappy ${args[*]}"
+        snappy "${args[@]}" > "${STATEMENT}"
+        echo "::endgroup::"
+
+        if [ "${INPUTS_SIGN}" = "true" ]; then
+          bnd statement --out="${INPUTS_OUTPUT}" "${STATEMENT}"
+        else
+          mv "${STATEMENT}" "${INPUTS_OUTPUT}"
+        fi
+
+        echo "attestation=${INPUTS_OUTPUT}" >> "${GITHUB_OUTPUT}"
