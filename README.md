@@ -338,6 +338,48 @@ to upload as an artifact, attach to a release or hand to AMPEL through its
 See the [bnd/pack README](bnd/pack/README.md) for what gets packed and more
 examples.
 
+### vexflow/assemble
+
+The `vexflow/assemble` action assembles the OpenVEX document of a branch with
+[vexflow](https://github.com/carabiner-dev/vexflow) and signs it into a
+sigstore bundle with bnd, using the workflow's own identity. vexflow scans the
+branch, gathers the triaged VEX statements that apply to the vulnerabilities
+it finds, and names the given products, by default the current commit, as
+what the statements are about.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/vexflow/assemble@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  with:
+    output: attestations/openvex.bundle.json
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `repo` | No | `${{ github.repository }}` | Repository to assemble the document for, as an `org/name` slug |
+| `branch` | No | the default branch | Branch to assemble the document for |
+| `product` | No | `sha1:${{ github.sha }}` | Newline-separated products (hashes or files); the attestation subjects when signing |
+| `triage-repo` | No | `<org>/.vexflow` | Repository holding the triage data |
+| `output` | Yes | - | Path to write the signed bundle (or the bare document) to |
+| `sign` | No | `true` | Wrap the document in an attestation and sign it with the job's identity |
+| `token` | No | `${{ github.token }}` | Token vexflow uses to read the triage repository |
+| `vexflow-version` | No | `""` | vexflow version to install; defaults to the installer's pin |
+| `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
+
+#### Outputs
+
+| Output | Description |
+| --- | --- |
+| `attestation` | Path of the written file |
+
+Signing requires the job to grant `id-token: write`.
+
+See the [vexflow/assemble README](vexflow/assemble/README.md) for what the
+document contains and more examples.
+
 ### Go Actions
 
 | Action | Description |
