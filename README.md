@@ -400,3 +400,4 @@ See the [go/ README](go/README.md) for full documentation and examples.
 | `install/snappy` | Installs the Carabiner snappy API snapshotter into the runner environment |
 | `install/revex` | Installs the OpenVEX revex document fixer into the runner |
 | `install/unpack` | Installs the Carabiner unpack dependency analyzer to the runner environment |
+| `install/vexflow` | Installs the vexflow VEX lifecycle manager into the runner environment |
