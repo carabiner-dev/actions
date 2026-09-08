@@ -254,3 +254,20 @@ jobs:
           bnd extract statement "${ATTESTATION}" \
             | jq -e --arg sha "${SHA}" \
                 '.predicateType == "https://openvex.dev/ns/v0.2.0" and .subject[0].digest.sha1 == $sha and .predicate["@context"] == "https://openvex.dev/ns/v0.2.0"'
+
+      # This repository has nothing for vexflow to scan: the action must
+      # warn, write nothing and still succeed.
+      - name: Assemble a repository with no packages to scan
+        id: nothing
+        uses: ./vexflow/assemble
+        with:
+          sign: 'false'
+          output: attestations/nothing.json
+
+      - name: Verify that nothing was written
+        shell: bash
+        env:
+          ATTESTATION: ${{ steps.nothing.outputs.attestation }}
+        run: |
+          test -z "${ATTESTATION}"
+          test ! -e attestations/nothing.json
