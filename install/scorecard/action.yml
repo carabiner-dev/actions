@@ -100,21 +100,23 @@ runs:
           {
             echo "archive=scorecard_${INPUTS_VERSION#v}_${os}_${arch}.tar.gz"
             echo "ext=${ext}"
-            echo "tmp=$(mktemp -d)"
           } >> "$GITHUB_OUTPUT"
         env:
           RUNNER_OS: ${{ runner.os }}
           RUNNER_ARCH: ${{ runner.arch }}
           INPUTS_VERSION: ${{ inputs.version }}
 
+      # The archive lands next to where the binary goes, as the other
+      # installers do; that path is known to work on every runner.
       - name: Download scorecard ${{ inputs.version }}
         shell: bash
         run: |
+          mkdir -p "${INSTALL_DIR}/bin"
           curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
-            -o "${TMP}/${ARCHIVE}" \
+            -o "${INSTALL_DIR}/bin/${ARCHIVE}" \
             "https://github.com/ossf/scorecard/releases/download/${INPUTS_VERSION}/${ARCHIVE}"
         env:
-          TMP: ${{ steps.platform.outputs.tmp }}
+          INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
           ARCHIVE: ${{ steps.platform.outputs.archive }}
           INPUTS_VERSION: ${{ inputs.version }}
 
@@ -127,7 +129,7 @@ runs:
         if: inputs.verify == 'true'
         uses: carabiner-dev/actions/ampel/verify@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
         with:
-          subject: ${{ steps.platform.outputs.tmp }}/${{ steps.platform.outputs.archive }}
+          subject: ${{ steps.install-dir.outputs.path }}/bin/${{ steps.platform.outputs.archive }}
           collector: https://github.com/ossf/scorecard/releases/download/${{ inputs.version }}/multiple.intoto.jsonl
           policy: ${{ inputs.policy }}
           signer: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/slsa-framework/slsa-github-generator/\.github/workflows/generator_generic_slsa3\.yml@refs/tags/v[0-9.]+'
@@ -138,13 +140,11 @@ runs:
       - name: Install scorecard
         shell: bash
         run: |
-          mkdir -p "${INSTALL_DIR}/bin"
-          tar -xzf "${TMP}/${ARCHIVE}" -C "${INSTALL_DIR}/bin" "scorecard${EXT}"
+          tar -xzf "${INSTALL_DIR}/bin/${ARCHIVE}" -C "${INSTALL_DIR}/bin" "scorecard${EXT}"
           chmod 0755 "${INSTALL_DIR}/bin/scorecard${EXT}"
-          rm -rf "${TMP}"
+          rm -f "${INSTALL_DIR}/bin/${ARCHIVE}"
         env:
           INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
-          TMP: ${{ steps.platform.outputs.tmp }}
           ARCHIVE: ${{ steps.platform.outputs.archive }}
           EXT: ${{ steps.platform.outputs.ext }}
 
