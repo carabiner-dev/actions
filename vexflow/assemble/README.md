@@ -53,7 +53,7 @@ With no other inputs, the action will:
 
 | Output | Description |
 | --- | --- |
-| `attestation` | Path of the written file, as given in `output` |
+| `attestation` | Path of the written file, as given in `output`. Empty when there was nothing to scan and no document was written. |
 
 ## Permissions
 
@@ -71,8 +71,13 @@ way.
 Only statements about vulnerabilities currently found in the branch make it
 into the document, so a branch with no assessed vulnerabilities yields a valid
 OpenVEX document with no statements, which is still attested. The scan runs
-in-process with the OSV database; a branch without any dependency manifests it
-recognizes makes vexflow fail with `no packages found in scan`.
+in-process with the OSV database.
+
+A branch without any dependency manifests the scan recognizes has no VEX
+document at all. vexflow reports that as `no packages found in scan`; the
+action turns it into a warning, writes nothing and leaves the `attestation`
+output empty, so a job can carry on and simply have no VEX evidence. Any
+other vexflow failure still fails the step.
 
 The attestation's predicate type is `https://openvex.dev/ns/v0.2.0` and its
 subjects are the `product` values: hashes as given, files by their digest.

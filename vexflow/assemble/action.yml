@@ -61,7 +61,9 @@ inputs:
 
 outputs:
   attestation:
-    description: 'Path of the written file, as given in the output input'
+    description: >
+      Path of the written file, as given in the output input. Empty when
+      vexflow found no packages to scan and no document was written.
     value: ${{ steps.assemble.outputs.attestation }}
 
 runs:
@@ -151,9 +153,28 @@ runs:
         trap 'rm -rf "${TMP_DIR}"' EXIT
         DOC="${TMP_DIR}/openvex.json"
 
+        # vexflow logs to stderr; keep a copy to tell "nothing to scan" apart
+        # from real failures.
+        LOG="${TMP_DIR}/vexflow.log"
         echo "::group::vexflow ${args[*]}"
-        vexflow "${args[@]}" > "${DOC}"
+        rc=0
+        vexflow "${args[@]}" > "${DOC}" 2> "${LOG}" || rc=$?
+        cat "${LOG}" >&2
         echo "::endgroup::"
+
+        # A branch without dependency manifests vexflow can scan has no VEX
+        # document to assemble. vexflow reports that as a fatal error, but
+        # for the caller it means there is no attestation to produce: say so
+        # and finish without writing anything.
+        if [ "${rc}" -ne 0 ] && grep -q "no packages found in scan" "${LOG}"; then
+          echo "::warning::vexflow found no packages to scan in ${INPUTS_REPO}${INPUTS_BRANCH:+@${INPUTS_BRANCH}}, no VEX document to attest"
+          echo "attestation=" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        if [ "${rc}" -ne 0 ]; then
+          exit "${rc}"
+        fi
 
         if [ ! -s "${DOC}" ]; then
           echo "::error::vexflow produced no document"
