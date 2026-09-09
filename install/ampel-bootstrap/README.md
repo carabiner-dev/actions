@@ -34,9 +34,10 @@ You can also pin a specific version:
 ./install/ampel-bootstrap/rotate.sh v1.2.0
 ```
 
-After running the script, review the diff, commit, and open a PR. Once merged,
-update all `@main` references in the other install actions to point to the new
-commit SHA.
+After running the script, review the diff, commit, and open a PR. The other
+install actions reach the bootstrap through the `$/install/ampel-bootstrap`
+same-repository reference, so they pick up the rotated hashes as soon as the PR
+merges; nothing else needs to be repointed.
 
 ## Why hardcoded hashes?
 

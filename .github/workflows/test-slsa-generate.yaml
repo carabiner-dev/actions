@@ -43,7 +43,7 @@ jobs:
 
       - name: Generate provenance
         id: slsa
-        uses: ./slsa/generate
+        uses: $/slsa/generate
         with:
           # Watch only the build job; watching the whole run would include the
           # verify job (which needs this one) and deadlock.
@@ -81,7 +81,7 @@ jobs:
           path: attestations
 
       - name: Verify artifact provenance with ampel
-        uses: ./ampel/verify
+        uses: $/ampel/verify
         with:
           subject: subject/artifact.txt
           collector: "fs:attestations"

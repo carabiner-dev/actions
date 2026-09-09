@@ -4,6 +4,13 @@ This repository contains reusable GitHub Actions for various tools in the
 Carabiner ecosystem. These actions help streamline security policy verification,
 attestation management, and supply chain security workflows.
 
+> [!NOTE]
+> The composite actions here compose one another through GitHub's `$/`
+> same-repository syntax, so every internal step resolves to the same commit
+> the caller pinned. The `$/` syntax is not available in GitHub Enterprise
+> Server, and on github.com it requires an Actions runner on version 2.336.0
+> or newer.
+
 ## Actions
 
 ### login

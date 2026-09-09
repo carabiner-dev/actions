@@ -66,19 +66,19 @@ runs:
     # stay in one place.
     - if: ${{ inputs.snappy-version == '' }}
       name: snappy Setup
-      uses: carabiner-dev/actions/install/snappy@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/snappy
     - if: ${{ inputs.snappy-version != '' }}
       name: snappy Setup (pinned)
-      uses: carabiner-dev/actions/install/snappy@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/snappy
       with:
         version: ${{ inputs.snappy-version }}
 
     - if: ${{ inputs.sign == 'true' && inputs.bnd-version == '' }}
       name: bnd Setup
-      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/bnd
     - if: ${{ inputs.sign == 'true' && inputs.bnd-version != '' }}
       name: bnd Setup (pinned)
-      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/bnd
       with:
         version: ${{ inputs.bnd-version }}
 

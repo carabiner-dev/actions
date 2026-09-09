@@ -72,10 +72,10 @@ runs:
     # stays in one place.
     - if: ${{ inputs.bnd-version == '' }}
       name: bnd Setup
-      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/bnd
     - if: ${{ inputs.bnd-version != '' }}
       name: bnd Setup (pinned)
-      uses: carabiner-dev/actions/install/bnd@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/bnd
       with:
         version: ${{ inputs.bnd-version }}
 
