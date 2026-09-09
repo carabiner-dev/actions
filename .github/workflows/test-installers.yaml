@@ -31,25 +31,25 @@ jobs:
 
       - if: matrix.tool == 'ampel-bootstrap'
         id: bootstrap
-        uses: $/install/ampel-bootstrap
+        uses: ./install/ampel-bootstrap
       - if: matrix.tool == 'ampel'
-        uses: $/install/ampel
+        uses: ./install/ampel
       - if: matrix.tool == 'bnd'
-        uses: $/install/bnd
+        uses: ./install/bnd
       - if: matrix.tool == 'beaker'
-        uses: $/install/beaker
+        uses: ./install/beaker
       - if: matrix.tool == 'revex'
-        uses: $/install/revex
+        uses: ./install/revex
       - if: matrix.tool == 'snappy'
-        uses: $/install/snappy
+        uses: ./install/snappy
       - if: matrix.tool == 'unpack'
-        uses: $/install/unpack
+        uses: ./install/unpack
       - if: matrix.tool == 'policyctl'
-        uses: $/install/policyctl
+        uses: ./install/policyctl
       - if: matrix.tool == 'vexflow'
-        uses: $/install/vexflow
+        uses: ./install/vexflow
       - if: matrix.tool == 'scorecard'
-        uses: $/install/scorecard
+        uses: ./install/scorecard
 
       - if: matrix.tool == 'ampel-bootstrap'
         name: Verify bootstrap binary runs
@@ -77,7 +77,7 @@ jobs:
           persist-credentials: false
 
       - name: Download and verify snappy
-        uses: $/install/download-and-verify
+        uses: ./install/download-and-verify
         with:
           tool: snappy
           version: v0.2.4
@@ -105,7 +105,7 @@ jobs:
             "https://github.com/carabiner-dev/bnd/releases/download/v0.4.1/bnd-v0.4.1-linux-amd64"
 
       - name: Verify bnd with ampel/verify
-        uses: $/ampel/verify
+        uses: ./ampel/verify
         with:
           subject: /tmp/bnd
           collector: https://github.com/carabiner-dev/bnd/releases/download/v0.4.1/attestations.jsonl
@@ -124,7 +124,7 @@ jobs:
 
       - name: Snapshot the repository with snappy/snap
         id: snap
-        uses: $/snappy/snap
+        uses: ./snappy/snap
         with:
           spec: builtin:github/repo.yaml
           vars: |
@@ -152,7 +152,7 @@ jobs:
 
       - name: Attest the dependabot config to the commit with bnd/commit
         id: commit
-        uses: $/bnd/commit
+        uses: ./bnd/commit
         with:
           path: .github/dependabot.yaml
           type: https://example.com/dependabot-config/v1
@@ -196,7 +196,7 @@ jobs:
 
       - name: Pack the bundles with bnd/pack
         id: pack
-        uses: $/bnd/pack
+        uses: ./bnd/pack
         with:
           bundles: |
             bundles/
@@ -236,7 +236,7 @@ jobs:
 
       - name: Assemble and sign the VEX document with vexflow/assemble
         id: assemble
-        uses: $/vexflow/assemble
+        uses: ./vexflow/assemble
         with:
           repo: carabiner-dev/bnd
           branch: main
@@ -259,7 +259,7 @@ jobs:
       # warn, write nothing and still succeed.
       - name: Assemble a repository with no packages to scan
         id: nothing
-        uses: $/vexflow/assemble
+        uses: ./vexflow/assemble
         with:
           sign: 'false'
           output: attestations/nothing.json
