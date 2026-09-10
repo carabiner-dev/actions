@@ -83,10 +83,10 @@ runs:
     # the automation bump workflow maintains) instead of duplicating it here.
     - if: ${{ inputs.ampel-version == '' }}
       name: 🔴🟡🟢 AMPEL Setup
-      uses: carabiner-dev/actions/install/ampel@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/ampel
     - if: ${{ inputs.ampel-version != '' }}
       name: 🔴🟡🟢 AMPEL Setup (pinned)
-      uses: carabiner-dev/actions/install/ampel@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+      uses: $/install/ampel
       with:
         version: ${{ inputs.ampel-version }}
 

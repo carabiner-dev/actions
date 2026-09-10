@@ -19,7 +19,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: carabiner-dev/actions/install/download-and-verify@d6d91c5c88723021a8798392cb9780c89ff6fdad # v1.2.7
+    - uses: $/install/download-and-verify
       with:
         tool: bnd
         version: ${{ inputs.version }}
