@@ -116,11 +116,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Sign with an ephemeral key rather than the job's workload identity:
+      # pull requests from forks get no OIDC token, so keyless signing would
+      # fail there.
+      - name: Generate an ephemeral signing key
+        shell: bash
+        run: |
+          openssl ecparam -name prime256v1 -genkey -noout \
+            | openssl pkcs8 -topk8 -nocrypt -out "${RUNNER_TEMP}/signing-key.pem"
+          openssl pkey -in "${RUNNER_TEMP}/signing-key.pem" -pubout \
+            -out "${RUNNER_TEMP}/signing-key.pub"
+
+      - name: Install ampel to verify the signed attestation
+        uses: ./install/ampel
 
       - name: Snapshot the repository with snappy/snap
         id: snap
@@ -130,25 +143,44 @@ jobs:
           vars: |
             ORG=${{ github.repository_owner }}
             REPO=${{ github.event.repository.name }}
-          output: attestations/repo.bundle.json
+          output: attestations/repo.envelope.json
+          signing-key: ${{ runner.temp }}/signing-key.pem
 
-      - name: Verify the signed bundle
+      - name: Verify the signed envelope with ampel
         shell: bash
         env:
           ATTESTATION: ${{ steps.snap.outputs.attestation }}
         run: |
           test -s "${ATTESTATION}"
-          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
+          # snappy names the repository as the subject; take its digest.
+          SUBJECT="$(bnd extract statement "${ATTESTATION}" \
+            | jq -r '.subject[0].digest | to_entries[0] | "\(.key):\(.value)"')"
+          .github/scripts/verify-signed-attestation.sh \
+            "${ATTESTATION}" "${RUNNER_TEMP}/signing-key.pub" \
+            http://github.com/carabiner-dev/snappy/specs/github/repo.yaml "${SUBJECT}"
 
   test-bnd-commit:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Sign with an ephemeral key rather than the job's workload identity:
+      # pull requests from forks get no OIDC token, so keyless signing would
+      # fail there.
+      - name: Generate an ephemeral signing key
+        shell: bash
+        run: |
+          openssl ecparam -name prime256v1 -genkey -noout \
+            | openssl pkcs8 -topk8 -nocrypt -out "${RUNNER_TEMP}/signing-key.pem"
+          openssl pkey -in "${RUNNER_TEMP}/signing-key.pem" -pubout \
+            -out "${RUNNER_TEMP}/signing-key.pub"
+
+      - name: Install ampel to verify the signed attestation
+        uses: ./install/ampel
 
       - name: Attest the dependabot config to the commit with bnd/commit
         id: commit
@@ -156,16 +188,19 @@ jobs:
         with:
           path: .github/dependabot.yaml
           type: https://example.com/dependabot-config/v1
-          output: attestations/dependabot.bundle.json
+          output: attestations/dependabot.envelope.json
+          signing-key: ${{ runner.temp }}/signing-key.pem
 
-      - name: Verify the signed bundle attests HEAD
+      - name: Verify with ampel that the signed envelope attests HEAD
         shell: bash
         env:
           ATTESTATION: ${{ steps.commit.outputs.attestation }}
         run: |
           test -s "${ATTESTATION}"
-          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
           HEAD_SHA="$(git rev-parse HEAD)"
+          .github/scripts/verify-signed-attestation.sh \
+            "${ATTESTATION}" "${RUNNER_TEMP}/signing-key.pub" \
+            https://example.com/dependabot-config/v1 "sha1:${HEAD_SHA}"
           bnd extract statement "${ATTESTATION}" \
             | jq -e --arg sha "${HEAD_SHA}" \
                 '.predicateType == "https://example.com/dependabot-config/v1" and .subject[0].digest.gitCommit == $sha and (.predicate.updates | length) > 0'
@@ -218,11 +253,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Sign with an ephemeral key rather than the job's workload identity:
+      # pull requests from forks get no OIDC token, so keyless signing would
+      # fail there.
+      - name: Generate an ephemeral signing key
+        shell: bash
+        run: |
+          openssl ecparam -name prime256v1 -genkey -noout \
+            | openssl pkcs8 -topk8 -nocrypt -out "${RUNNER_TEMP}/signing-key.pem"
+          openssl pkey -in "${RUNNER_TEMP}/signing-key.pem" -pubout \
+            -out "${RUNNER_TEMP}/signing-key.pub"
+
+      - name: Install ampel to verify the signed attestation
+        uses: ./install/ampel
 
       # This repository has no dependency manifests for vexflow to scan, so
       # assemble the document of a Go repository in the organization instead.
@@ -241,16 +289,19 @@ jobs:
           repo: carabiner-dev/bnd
           branch: main
           product: sha1:${{ steps.target.outputs.sha }}
-          output: attestations/openvex.bundle.json
+          output: attestations/openvex.envelope.json
+          signing-key: ${{ runner.temp }}/signing-key.pem
 
-      - name: Verify the signed bundle
+      - name: Verify the signed envelope with ampel
         shell: bash
         env:
           ATTESTATION: ${{ steps.assemble.outputs.attestation }}
           SHA: ${{ steps.target.outputs.sha }}
         run: |
           test -s "${ATTESTATION}"
-          jq -e '.mediaType | startswith("application/vnd.dev.sigstore.bundle")' "${ATTESTATION}"
+          .github/scripts/verify-signed-attestation.sh \
+            "${ATTESTATION}" "${RUNNER_TEMP}/signing-key.pub" \
+            https://openvex.dev/ns/v0.2.0 "sha1:${SHA}"
           bnd extract statement "${ATTESTATION}" \
             | jq -e --arg sha "${SHA}" \
                 '.predicateType == "https://openvex.dev/ns/v0.2.0" and .subject[0].digest.sha1 == $sha and .predicate["@context"] == "https://openvex.dev/ns/v0.2.0"'
