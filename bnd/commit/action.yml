@@ -54,6 +54,13 @@ inputs:
   output:
     description: 'Path to write the signed bundle to. Parent directories are created as needed.'
     required: true
+  signing-key:
+    description: >
+      Path to a private key (PEM: PKCS#8, PKCS#1 or SEC1) to sign with instead
+      of the job's workload identity. The output is then a DSSE envelope rather
+      than a sigstore bundle, and `id-token: write` is not needed.
+    required: false
+    default: ''
   bnd-version:
     description: 'bnd version to install. Defaults to the version shipped by the bnd installer.'
     required: false
@@ -91,13 +98,14 @@ runs:
         INPUTS_SHA: ${{ inputs.sha }}
         INPUTS_TAG: ${{ inputs.tag }}
         INPUTS_OUTPUT: ${{ inputs.output }}
+        INPUTS_SIGNING_KEY: ${{ inputs.signing-key }}
       run: |
         set -euo pipefail
 
-        # bnd commit always signs, using the job's workload identity, which is
-        # only available when the workflow grants id-token: write. Fail early
-        # with a useful message.
-        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+        # bnd commit always signs. Without a signing key it uses the job's
+        # workload identity, which is only available when the workflow grants
+        # id-token: write. Fail early with a useful message.
+        if [ -z "${INPUTS_SIGNING_KEY}" ] && [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
           echo "::error::Signing requires the job to grant the 'id-token: write' permission."
           exit 1
         fi
@@ -196,6 +204,12 @@ runs:
 
         if [ -n "${TARGET}" ]; then
           args+=(--sha "${TARGET}")
+        fi
+
+        # A private key switches bnd to its key backend, which writes a DSSE
+        # envelope instead of a sigstore bundle.
+        if [ -n "${INPUTS_SIGNING_KEY}" ]; then
+          args+=(--signing-key "${INPUTS_SIGNING_KEY}")
         fi
 
         mkdir -p "$(dirname "${INPUTS_OUTPUT}")"

@@ -29,9 +29,17 @@ inputs:
   sign:
     description: >
       Sign the statement into a sigstore bundle with the job's workload
-      identity. Requires the job to grant the `id-token: write` permission.
+      identity. Requires the job to grant the `id-token: write` permission
+      unless a signing-key is given.
     required: false
     default: 'true'
+  signing-key:
+    description: >
+      Path to a private key (PEM: PKCS#8, PKCS#1 or SEC1) to sign with instead
+      of the job's workload identity. The output is then a DSSE envelope rather
+      than a sigstore bundle, and `id-token: write` is not needed.
+    required: false
+    default: ''
   platform:
     description: >
       API platform the spec targets: github or gitlab. Auto-detected from the
@@ -91,14 +99,15 @@ runs:
         INPUTS_VARS: ${{ inputs.vars }}
         INPUTS_OUTPUT: ${{ inputs.output }}
         INPUTS_SIGN: ${{ inputs.sign }}
+        INPUTS_SIGNING_KEY: ${{ inputs.signing-key }}
         INPUTS_PLATFORM: ${{ inputs.platform }}
       run: |
         set -euo pipefail
 
-        # Signing uses the job's workload identity, which is only available
-        # when the workflow grants id-token: write. Fail early with a useful
-        # message.
-        if [ "${INPUTS_SIGN}" = "true" ] && [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+        # Without a signing key, signing uses the job's workload identity,
+        # which is only available when the workflow grants id-token: write.
+        # Fail early with a useful message.
+        if [ "${INPUTS_SIGN}" = "true" ] && [ -z "${INPUTS_SIGNING_KEY}" ] && [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
           echo "::error::Signing requires the job to grant the 'id-token: write' permission."
           exit 1
         fi
@@ -135,7 +144,13 @@ runs:
         echo "::endgroup::"
 
         if [ "${INPUTS_SIGN}" = "true" ]; then
-          bnd statement --out="${INPUTS_OUTPUT}" "${STATEMENT}"
+          sign=(statement --out="${INPUTS_OUTPUT}")
+          # A private key switches bnd to its key backend, which writes a
+          # DSSE envelope instead of a sigstore bundle.
+          if [ -n "${INPUTS_SIGNING_KEY}" ]; then
+            sign+=(--signing-key "${INPUTS_SIGNING_KEY}")
+          fi
+          bnd "${sign[@]}" "${STATEMENT}"
         else
           mv "${STATEMENT}" "${INPUTS_OUTPUT}"
         fi

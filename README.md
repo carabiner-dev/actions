@@ -246,6 +246,7 @@ built-in specs for GitHub repositories, organizations, branch rules and more.
 | `vars` | No | `""` | Newline-separated `NAME=value` pairs substituted into the spec |
 | `output` | Yes | - | Path to write the signed bundle (or the unsigned statement) to |
 | `sign` | No | `true` | Sign the statement into a sigstore bundle with the job's identity |
+| `signing-key` | No | `""` | PEM private key to sign with instead; the output is then a DSSE envelope |
 | `platform` | No | `""` | `github` or `gitlab`; auto-detected from the spec when empty |
 | `token` | No | `${{ github.token }}` | Token for the GitHub API calls, exported as `GITHUB_TOKEN` |
 | `snappy-version` | No | `""` | snappy version to install; defaults to the installer's pin |
@@ -257,7 +258,8 @@ built-in specs for GitHub repositories, organizations, branch rules and more.
 | --- | --- |
 | `attestation` | Path of the written attestation |
 
-Signing requires the job to grant `id-token: write`.
+Signing requires the job to grant `id-token: write`, unless a `signing-key`
+is given.
 
 See the [snappy/snap README](snappy/snap/README.md) for the built-in specs,
 permission notes, and more examples.
@@ -294,6 +296,7 @@ verifiable evidence about a specific commit.
 | `sha` | No | `""` | Commit to attest; defaults to HEAD. Exclusive with `tag` |
 | `tag` | No | `""` | Tag to attest instead of a commit. Exclusive with `sha` |
 | `output` | Yes | - | Path to write the signed bundle to |
+| `signing-key` | No | `""` | PEM private key to sign with instead; the output is then a DSSE envelope |
 | `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
 
 #### Outputs
@@ -302,8 +305,9 @@ verifiable evidence about a specific commit.
 | --- | --- |
 | `attestation` | Path of the written attestation |
 
-`bnd commit` always signs, so the job must grant `id-token: write`. Attesting
-an older `sha` or a `tag` needs the commit in the checkout (`fetch-depth: 0`).
+`bnd commit` always signs, so the job must grant `id-token: write` unless a
+`signing-key` is given. Attesting an older `sha` or a `tag` needs the commit
+in the checkout (`fetch-depth: 0`).
 
 See the [bnd/commit README](bnd/commit/README.md) for details on the attested
 commit and more examples.
@@ -372,6 +376,7 @@ what the statements are about.
 | `triage-repo` | No | `<org>/.vexflow` | Repository holding the triage data |
 | `output` | Yes | - | Path to write the signed bundle (or the bare document) to |
 | `sign` | No | `true` | Wrap the document in an attestation and sign it with the job's identity |
+| `signing-key` | No | `""` | PEM private key to sign with instead; the output is then a DSSE envelope |
 | `token` | No | `${{ github.token }}` | Token vexflow uses to read the triage repository |
 | `vexflow-version` | No | `""` | vexflow version to install; defaults to the installer's pin |
 | `bnd-version` | No | `""` | bnd version to install; defaults to the installer's pin |
@@ -382,7 +387,8 @@ what the statements are about.
 | --- | --- |
 | `attestation` | Path of the written file |
 
-Signing requires the job to grant `id-token: write`.
+Signing requires the job to grant `id-token: write`, unless a `signing-key`
+is given.
 
 See the [vexflow/assemble README](vexflow/assemble/README.md) for what the
 document contains and more examples.

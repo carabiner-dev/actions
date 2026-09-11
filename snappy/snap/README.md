@@ -45,6 +45,7 @@ The action will:
 | `vars` | No | `""` | Newline-separated `NAME=value` pairs substituted into the spec's `${NAME}` variables. Values cannot contain commas, snappy splits `--var` on them. |
 | `output` | Yes | - | Path to write the attestation to: a signed sigstore bundle or, when `sign` is false, the unsigned in-toto statement. Parent directories are created as needed. |
 | `sign` | No | `true` | Sign the statement into a sigstore bundle with the job's workload identity. |
+| `signing-key` | No | `""` | Path to a PEM private key (PKCS#8, PKCS#1 or SEC1) to sign with instead of the job's workload identity. The output is then a DSSE envelope rather than a sigstore bundle. |
 | `platform` | No | `""` | API platform the spec targets: `github` or `gitlab`. Auto-detected from the spec's endpoint when empty. |
 | `token` | No | `${{ github.token }}` | Token snappy uses to call the GitHub API, exported as `GITHUB_TOKEN`. For GitLab specs set `GITLAB_TOKEN` in the step's `env` instead. |
 | `snappy-version` | No | `""` | snappy version to install. When empty, the version pinned by `install/snappy` is used. |
@@ -61,6 +62,10 @@ The action will:
 Signing uses the job's workload identity, so `sign: 'true'` (the default)
 requires the job to grant `id-token: write`. The action fails early with a
 clear error when the permission is missing.
+
+With `signing-key`, bnd signs with that private key instead and no
+`id-token: write` is needed. The output is then a plain DSSE envelope, not a
+sigstore bundle, so verifiers need the matching public key.
 
 The API calls run with `token`, which defaults to the job's `GITHUB_TOKEN`.
 That token can read the repository's own data, but organization-level specs

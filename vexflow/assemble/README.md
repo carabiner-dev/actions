@@ -45,6 +45,7 @@ With no other inputs, the action will:
 | `triage-repo` | No | `<org>/.vexflow` | Repository holding the triage data, as an `org/name` slug. |
 | `output` | Yes | - | Path to write the result to: a signed sigstore bundle or, when `sign` is false, the bare OpenVEX document. Parent directories are created as needed. |
 | `sign` | No | `true` | Wrap the document in an in-toto attestation and sign it with the job's workload identity. |
+| `signing-key` | No | `""` | Path to a PEM private key (PKCS#8, PKCS#1 or SEC1) to sign with instead of the job's workload identity. The output is then a DSSE envelope rather than a sigstore bundle. |
 | `token` | No | `${{ github.token }}` | Token vexflow uses to read the triage repository, exported as `GITHUB_TOKEN`. |
 | `vexflow-version` | No | `""` | vexflow version to install. When empty, the version pinned by `install/vexflow` is used. |
 | `bnd-version` | No | `""` | bnd version to install for signing. When empty, the version pinned by `install/bnd` is used. |
@@ -60,6 +61,10 @@ With no other inputs, the action will:
 Signing uses the job's workload identity, so `sign: 'true'` (the default)
 requires the job to grant `id-token: write`. The action fails early with a
 clear error when the permission is missing.
+
+With `signing-key`, bnd signs with that private key instead and no
+`id-token: write` is needed. The output is then a plain DSSE envelope, not a
+sigstore bundle, so verifiers need the matching public key.
 
 vexflow reads the triage repository with `token`, which defaults to the job's
 `GITHUB_TOKEN`; that is enough for a public `.vexflow` repository. The branch

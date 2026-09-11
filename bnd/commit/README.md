@@ -51,6 +51,7 @@ The action will:
 | `sha` | No | `""` | Commit to attest. Defaults to the HEAD of the repository. Set either `sha` or `tag`, not both. |
 | `tag` | No | `""` | Tag to attest instead of a commit. Set either `sha` or `tag`, not both. |
 | `output` | Yes | - | Path to write the signed bundle to. Parent directories are created as needed. |
+| `signing-key` | No | `""` | Path to a PEM private key (PKCS#8, PKCS#1 or SEC1) to sign with instead of the job's workload identity. The output is then a DSSE envelope rather than a sigstore bundle. |
 | `bnd-version` | No | `""` | bnd version to install. When empty, the version pinned by `install/bnd` is used. |
 
 ## Outputs
@@ -64,6 +65,10 @@ The action will:
 `bnd commit` always signs, using the job's workload identity, so the job must
 grant `id-token: write`. The action fails early with a clear error when the
 permission is missing.
+
+With `signing-key`, bnd signs with that private key instead and no
+`id-token: write` is needed. The output is then a plain DSSE envelope, not a
+sigstore bundle, so verifiers need the matching public key.
 
 ## The attested commit
 
