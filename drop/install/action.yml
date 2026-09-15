@@ -55,6 +55,12 @@ inputs:
     description: 'drop version to install. Defaults to the version shipped by the drop installer.'
     required: false
     default: ''
+  token:
+    description: >
+      Token drop uses to call the GitHub API (listing releases, reading
+      policies), exported as GITHUB_TOKEN. Anonymous calls are rate limited.
+    required: false
+    default: ${{ github.token }}
 runs:
   using: "composite"
   steps:
@@ -137,6 +143,7 @@ runs:
         drop "${args[@]}"
         echo "::endgroup::"
       env:
+        GITHUB_TOKEN: ${{ inputs.token }}
         INPUTS_APP: ${{ inputs.app }}
         INPUTS_VERSION: ${{ inputs.version }}
         INPUTS_POLICY_REPO: ${{ inputs.policy-repo }}
