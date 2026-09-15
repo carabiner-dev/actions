@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, macos-latest, windows-latest]
-        tool: [ampel-bootstrap, ampel, bnd, beaker, revex, snappy, unpack, policyctl, vexflow, scorecard]
+        tool: [ampel-bootstrap, ampel, bnd, beaker, revex, snappy, unpack, policyctl, vexflow, scorecard, drop]
         exclude:
           # beaker has no Windows binary
           - runner: windows-latest
@@ -50,6 +50,8 @@ jobs:
         uses: ./install/vexflow
       - if: matrix.tool == 'scorecard'
         uses: ./install/scorecard
+      - if: matrix.tool == 'drop'
+        uses: ./install/drop
 
       - if: matrix.tool == 'ampel-bootstrap'
         name: Verify bootstrap binary runs
@@ -62,6 +64,42 @@ jobs:
         name: Verify binary runs
         shell: bash
         run: ${{ matrix.tool }} --help
+
+  test-drop-install:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # drop verifies its own release against the policy carabiner-dev
+      # publishes, so this exercises the whole path: fetch, verify, install.
+      - name: Install drop with drop, verified
+        uses: ./drop/install
+        with:
+          app: carabiner-dev/drop
+          version: v0.2.0
+          install-dir: $HOME/drop-test/verified
+
+      # A project without policies installs only when asked to skip them.
+      - name: Install bnd with drop, insecure
+        uses: ./drop/install
+        with:
+          app: carabiner-dev/bnd
+          insecure: 'true'
+          install-dir: $HOME/drop-test/insecure
+
+      - name: Verify the installed binaries run
+        shell: bash
+        run: |
+          "${HOME}/drop-test/verified/bin/drop" version
+          "${HOME}/drop-test/insecure/bin/bnd" version
 
   test-download-and-verify:
     permissions:

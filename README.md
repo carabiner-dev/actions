@@ -393,6 +393,38 @@ is given.
 See the [vexflow/assemble README](vexflow/assemble/README.md) for what the
 document contains and more examples.
 
+### drop/install
+
+The `drop/install` action installs an app from its GitHub release with
+[drop](https://github.com/carabiner-dev/drop), verifying the artifact against
+the security policies its publisher defines before it lands in the runner.
+Policies are evaluated with AMPEL against the attestations shipped with the
+release; without a policy that applies, nothing is installed.
+
+#### Usage
+
+```yaml
+- uses: carabiner-dev/actions/drop/install@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  with:
+    app: sigstore/cosign
+    version: v3.1.3
+```
+
+#### Inputs
+
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `app` | Yes | - | App to install: `org/repo`, `github.com/org/repo`, or `org/repo#toolname` when the binary is not named after the repository |
+| `version` | No | `""` | Release tag to install; the latest stable release when empty |
+| `policy-repo` | No | `""` | Alternative policy source: a GitHub repository (URL or slug) or a local checkout path |
+| `insecure` | No | `false` | Skip verification and install the artifact as published |
+| `type` | No | `""` | Artifact type when the release offers several: `binary`, `package` or `archive` |
+| `install-dir` | No | `$HOME/.carabiner` | Directory to install into; binaries go to its `bin/` subdirectory, which is on the `PATH` |
+| `drop-version` | No | `""` | drop version to install; defaults to the installer's pin |
+
+See the [drop/install README](drop/install/README.md) for where policies come
+from and more examples.
+
 ### Go Actions
 
 | Action | Description |
@@ -409,6 +441,7 @@ See the [go/ README](go/README.md) for full documentation and examples.
 | --- | --- |
 | `install/ampel` | Installs the 🔴🟡🟢 AMPEL policy engine into the runner environment |
 | `install/bnd` | Installs the Carabiner bnd attestation utility into the runner environment |
+| `install/drop` | Installs drop, the Carabiner secure-first installer for GitHub releases, into the runner environment |
 | `install/beaker` | Installs the Carabiner beaker test attester into the runner environment |
 | `install/snappy` | Installs the Carabiner snappy API snapshotter into the runner environment |
 | `install/revex` | Installs the OpenVEX revex document fixer into the runner |

@@ -1,0 +1,163 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: install with drop
+author: carabiner-dev
+description: >
+  Installs an app from a GitHub release with drop, verifying it against the
+  security policies its publisher defines before it lands in the runner.
+branding:
+  icon: 'download-cloud'
+  color: 'green'
+inputs:
+  app:
+    description: >
+      App to install, as a repository slug or URL, optionally naming the
+      asset when the binary is not named after the repository
+      (e.g. "sigstore/cosign", "github.com/org/repo", "org/repo#toolname").
+    required: true
+  version:
+    description: >
+      Release tag to install (e.g. "v1.2.3"). When empty, the latest stable
+      release is installed.
+    required: false
+    default: ''
+  policy-repo:
+    description: >
+      Alternative policy source: a GitHub repository (URL or slug) or the
+      path of a local checkout. When empty, drop reads the publisher's
+      policies from its organization's .github repository, falling back to
+      the community policies.
+    required: false
+    default: ''
+  insecure:
+    description: >
+      Skip policy verification and install the artifact as published. Use
+      only when drop is wanted as a plain installer; nothing about the
+      artifact is checked.
+    required: false
+    default: 'false'
+  type:
+    description: >
+      Artifact type to install when the release offers several: binary,
+      package or archive. When empty, drop picks a binary over a package.
+    required: false
+    default: ''
+  install-dir:
+    description: >
+      Directory to install into. Binaries go to its bin/ subdirectory, which
+      is added to the PATH. Must be a $HOME-relative or absolute POSIX-style
+      path. drop itself is installed under $HOME/.carabiner/tools/drop, so an
+      app may be drop.
+    required: false
+    default: '$HOME/.carabiner'
+  drop-version:
+    description: 'drop version to install. Defaults to the version shipped by the drop installer.'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    # The drop binary lives in its own directory, apart from the apps it
+    # installs: installing drop with drop into the same directory would
+    # overwrite the running executable. The path is $HOME-relative because
+    # that is what the installer accepts on every runner (runner.temp is a
+    # backslashed drive path on Windows).
+    - if: ${{ inputs.drop-version == '' }}
+      name: drop Setup
+      uses: $/install/drop
+      with:
+        install-dir: $HOME/.carabiner/tools/drop
+    - if: ${{ inputs.drop-version != '' }}
+      name: drop Setup (pinned)
+      uses: $/install/drop
+      with:
+        install-dir: $HOME/.carabiner/tools/drop
+        version: ${{ inputs.drop-version }}
+
+    - name: Validate install-dir
+      id: install-dir
+      shell: bash
+      run: |
+        case "$INPUTS_INSTALL_DIR" in
+          ''|*[!A-Za-z0-9._/\$~-]*)
+            echo "::error::install-dir must be non-empty and contain only [A-Za-z0-9._/\$~-]; got: $INPUTS_INSTALL_DIR"
+            exit 1
+            ;;
+        esac
+        # The value arrives through env, so the shell never expands a $HOME
+        # or ~ prefix. Resolve the path here and use it downstream.
+        case "$INPUTS_INSTALL_DIR" in
+          '$HOME'|'$HOME'/*) dir="${HOME}${INPUTS_INSTALL_DIR#\$HOME}" ;;
+          '~'|'~'/*)         dir="${HOME}${INPUTS_INSTALL_DIR#\~}" ;;
+          *)                 dir="$INPUTS_INSTALL_DIR" ;;
+        esac
+        echo "path=$dir" >> "$GITHUB_OUTPUT"
+      env:
+        INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+
+    - name: Install ${{ inputs.app }}
+      shell: bash
+      run: |
+        case "$INPUTS_INSECURE" in
+          true|false) ;;
+          *) echo "::error::insecure must be 'true' or 'false'; got: $INPUTS_INSECURE"; exit 1 ;;
+        esac
+        case "$INPUTS_TYPE" in
+          ''|binary|package|archive) ;;
+          *) echo "::error::type must be binary, package or archive; got: $INPUTS_TYPE"; exit 1 ;;
+        esac
+
+        spec="$INPUTS_APP"
+        if [ -n "$INPUTS_VERSION" ]; then
+          # Keep an asset name (after #) at the end of the spec
+          case "$spec" in
+            *'#'*) spec="${spec%%#*}@${INPUTS_VERSION}#${spec#*#}" ;;
+            *)     spec="${spec}@${INPUTS_VERSION}" ;;
+          esac
+        fi
+
+        # drop installs into an existing directory; create it so a missing
+        # one is not mistaken for an unwritable one (which would call sudo).
+        mkdir -p "${INSTALL_DIR}/bin"
+
+        args=(install --yes --bin-dir "${INSTALL_DIR}/bin")
+        if [ -n "$INPUTS_POLICY_REPO" ]; then
+          args+=(--policy-repo "$INPUTS_POLICY_REPO")
+        fi
+        if [ "$INPUTS_INSECURE" = "true" ]; then
+          args+=(--insecure)
+        fi
+        if [ -n "$INPUTS_TYPE" ]; then
+          args+=(--type "$INPUTS_TYPE")
+        fi
+        args+=("$spec")
+
+        echo "::group::drop ${args[*]}"
+        drop "${args[@]}"
+        echo "::endgroup::"
+      env:
+        INPUTS_APP: ${{ inputs.app }}
+        INPUTS_VERSION: ${{ inputs.version }}
+        INPUTS_POLICY_REPO: ${{ inputs.policy-repo }}
+        INPUTS_INSECURE: ${{ inputs.insecure }}
+        INPUTS_TYPE: ${{ inputs.type }}
+        INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
+
+    - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      name: Add the install directory to the PATH
+      run: echo "${INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
+      shell: bash
+      env:
+        INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
+    - if: ${{ runner.os == 'Windows' }}
+      name: Add the install directory to the PATH
+      # Resolve $HOME/~ with pwsh's own $HOME so PATH gets a Windows-style path.
+      run: | # zizmor: ignore[github-env] install-dir validated upstream
+        $dir = $env:INPUTS_INSTALL_DIR
+        if ($dir -eq '$HOME' -or $dir.StartsWith('$HOME/')) { $dir = $HOME + $dir.Substring(5) }
+        elseif ($dir -eq '~' -or $dir.StartsWith('~/')) { $dir = $HOME + $dir.Substring(1) }
+        echo "$dir/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+      env:
+        INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}

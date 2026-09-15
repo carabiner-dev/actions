@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+
+name: setup drop
+author: carabiner-dev
+description: 'Installs drop, the Carabiner secure-first installer for GitHub releases, into the runner environment'
+branding:
+  icon: 'download-cloud'
+  color: 'green'
+inputs:
+  install-dir:
+    description: 'Path to install the binary'
+    required: false
+    default: '$HOME/.carabiner'
+  version:
+    description: 'drop version to install'
+    required: false
+    default: 'v0.2.0'
+runs:
+  using: "composite"
+  steps:
+    - uses: $/install/download-and-verify
+      with:
+        tool: drop
+        version: ${{ inputs.version }}
+        install-dir: ${{ inputs.install-dir }}
+        # drop publishes its SLSA provenance as a single sigstore bundle
+        # named after the release, not as an attestations.jsonl file.
+        attestation-file: drop-${{ inputs.version }}.provenance.json
