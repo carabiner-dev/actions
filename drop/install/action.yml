@@ -46,7 +46,8 @@ inputs:
   install-dir:
     description: >
       Directory to install into. Binaries go to its bin/ subdirectory, which
-      is added to the PATH.
+      is added to the PATH. drop itself is installed elsewhere in the runner,
+      so an app may be drop.
     required: false
     default: '$HOME/.carabiner'
   drop-version:
@@ -56,16 +57,19 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # The drop binary lives in its own directory, apart from the apps it
+    # installs: installing drop with drop into the same directory would
+    # overwrite the running executable.
     - if: ${{ inputs.drop-version == '' }}
       name: drop Setup
       uses: $/install/drop
       with:
-        install-dir: ${{ inputs.install-dir }}
+        install-dir: ${{ runner.temp }}/drop-tool
     - if: ${{ inputs.drop-version != '' }}
       name: drop Setup (pinned)
       uses: $/install/drop
       with:
-        install-dir: ${{ inputs.install-dir }}
+        install-dir: ${{ runner.temp }}/drop-tool
         version: ${{ inputs.drop-version }}
 
     - name: Validate install-dir
@@ -136,3 +140,21 @@ runs:
         INPUTS_INSECURE: ${{ inputs.insecure }}
         INPUTS_TYPE: ${{ inputs.type }}
         INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
+
+    - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      name: Add the install directory to the PATH
+      run: echo "${INSTALL_DIR}/bin" >> $GITHUB_PATH # zizmor: ignore[github-env] install-dir validated upstream
+      shell: bash
+      env:
+        INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
+    - if: ${{ runner.os == 'Windows' }}
+      name: Add the install directory to the PATH
+      # Resolve $HOME/~ with pwsh's own $HOME so PATH gets a Windows-style path.
+      run: | # zizmor: ignore[github-env] install-dir validated upstream
+        $dir = $env:INPUTS_INSTALL_DIR
+        if ($dir -eq '$HOME' -or $dir.StartsWith('$HOME/')) { $dir = $HOME + $dir.Substring(5) }
+        elseif ($dir -eq '~' -or $dir.StartsWith('~/')) { $dir = $HOME + $dir.Substring(1) }
+        echo "$dir/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: pwsh
+      env:
+        INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}

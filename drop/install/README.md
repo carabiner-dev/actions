@@ -14,8 +14,9 @@ release, before it lands in the runner. No policy, no install.
     version: v3.1.3
 ```
 
-The binary lands in `$HOME/.carabiner/bin`, which the drop installer adds to
-the `PATH`, so later steps can call it by name.
+The binary lands in `$HOME/.carabiner/bin`, which is added to the `PATH`, so
+later steps can call it by name. drop itself is installed in a separate
+directory of the runner, so the app being installed may be drop.
 
 ## Inputs
 
