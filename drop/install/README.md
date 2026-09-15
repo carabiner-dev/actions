@@ -29,6 +29,7 @@ later steps can call it by name. drop itself is installed under
 | `type` | No | `""` | Artifact type to install when the release offers several: `binary`, `package` or `archive` |
 | `install-dir` | No | `$HOME/.carabiner` | Directory to install into, as a `$HOME`-relative or POSIX-style path; binaries go to its `bin/` subdirectory |
 | `drop-version` | No | `""` | drop version to install; defaults to the drop installer's pin |
+| `token` | No | `${{ github.token }}` | Token for drop's GitHub API calls, exported as `GITHUB_TOKEN`; anonymous calls are rate limited |
 
 ## Where policies come from
 

@@ -421,6 +421,7 @@ release; without a policy that applies, nothing is installed.
 | `type` | No | `""` | Artifact type when the release offers several: `binary`, `package` or `archive` |
 | `install-dir` | No | `$HOME/.carabiner` | Directory to install into; binaries go to its `bin/` subdirectory, which is on the `PATH` |
 | `drop-version` | No | `""` | drop version to install; defaults to the installer's pin |
+| `token` | No | `${{ github.token }}` | Token for drop's GitHub API calls, exported as `GITHUB_TOKEN` |
 
 See the [drop/install README](drop/install/README.md) for where policies come
 from and more examples.
