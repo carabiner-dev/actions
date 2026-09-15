@@ -46,8 +46,9 @@ inputs:
   install-dir:
     description: >
       Directory to install into. Binaries go to its bin/ subdirectory, which
-      is added to the PATH. drop itself is installed elsewhere in the runner,
-      so an app may be drop.
+      is added to the PATH. Must be a $HOME-relative or absolute POSIX-style
+      path. drop itself is installed under $HOME/.carabiner/tools/drop, so an
+      app may be drop.
     required: false
     default: '$HOME/.carabiner'
   drop-version:
@@ -59,17 +60,19 @@ runs:
   steps:
     # The drop binary lives in its own directory, apart from the apps it
     # installs: installing drop with drop into the same directory would
-    # overwrite the running executable.
+    # overwrite the running executable. The path is $HOME-relative because
+    # that is what the installer accepts on every runner (runner.temp is a
+    # backslashed drive path on Windows).
     - if: ${{ inputs.drop-version == '' }}
       name: drop Setup
       uses: $/install/drop
       with:
-        install-dir: ${{ runner.temp }}/drop-tool
+        install-dir: $HOME/.carabiner/tools/drop
     - if: ${{ inputs.drop-version != '' }}
       name: drop Setup (pinned)
       uses: $/install/drop
       with:
-        install-dir: ${{ runner.temp }}/drop-tool
+        install-dir: $HOME/.carabiner/tools/drop
         version: ${{ inputs.drop-version }}
 
     - name: Validate install-dir

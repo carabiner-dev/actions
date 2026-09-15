@@ -85,7 +85,7 @@ jobs:
         with:
           app: carabiner-dev/drop
           version: v0.2.0
-          install-dir: ${{ runner.temp }}/verified
+          install-dir: $HOME/drop-test/verified
 
       # A project without policies installs only when asked to skip them.
       - name: Install bnd with drop, insecure
@@ -93,13 +93,13 @@ jobs:
         with:
           app: carabiner-dev/bnd
           insecure: 'true'
-          install-dir: ${{ runner.temp }}/insecure
+          install-dir: $HOME/drop-test/insecure
 
       - name: Verify the installed binaries run
         shell: bash
         run: |
-          "${RUNNER_TEMP}/verified/bin/drop" version
-          "${RUNNER_TEMP}/insecure/bin/bnd" version
+          "${HOME}/drop-test/verified/bin/drop" version
+          "${HOME}/drop-test/insecure/bin/bnd" version
 
   test-download-and-verify:
     permissions:

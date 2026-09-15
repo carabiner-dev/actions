@@ -15,8 +15,8 @@ release, before it lands in the runner. No policy, no install.
 ```
 
 The binary lands in `$HOME/.carabiner/bin`, which is added to the `PATH`, so
-later steps can call it by name. drop itself is installed in a separate
-directory of the runner, so the app being installed may be drop.
+later steps can call it by name. drop itself is installed under
+`$HOME/.carabiner/tools/drop`, so the app being installed may be drop.
 
 ## Inputs
 
@@ -27,7 +27,7 @@ directory of the runner, so the app being installed may be drop.
 | `policy-repo` | No | `""` | Alternative policy source: a GitHub repository (URL or slug) or a local checkout path |
 | `insecure` | No | `false` | Skip verification and install the artifact as published |
 | `type` | No | `""` | Artifact type to install when the release offers several: `binary`, `package` or `archive` |
-| `install-dir` | No | `$HOME/.carabiner` | Directory to install into; binaries go to its `bin/` subdirectory |
+| `install-dir` | No | `$HOME/.carabiner` | Directory to install into, as a `$HOME`-relative or POSIX-style path; binaries go to its `bin/` subdirectory |
 | `drop-version` | No | `""` | drop version to install; defaults to the drop installer's pin |
 
 ## Where policies come from
