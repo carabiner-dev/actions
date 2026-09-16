@@ -25,7 +25,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
         with:
           path: SECURITY-INSIGHTS.yml
           type: https://github.com/ossf/security-insights-spec
@@ -103,13 +103,13 @@ steps:
     with:
       persist-credentials: false
 
-  - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       path: SECURITY-INSIGHTS.yml
       type: https://github.com/ossf/security-insights-spec
       output: attestations/si.bundle.json
 
-  - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       path: .openeox.json
       type: https://docs.oasis-open.org/openeox/core/v1.0
@@ -125,7 +125,7 @@ steps:
       persist-credentials: false
       fetch-depth: 0
 
-  - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       path: .openeox.json
       type: https://docs.oasis-open.org/openeox/core/v1.0
@@ -144,7 +144,7 @@ steps:
   - name: Lint the repository
     run: my-linter --format json > lint-results.json
 
-  - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       predicate: lint-results.json
       type: https://example.com/lint-results/v1
@@ -155,7 +155,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/bnd/commit@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/commit@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       repo: https://github.com/example/policies
       tag: v1.4.0
