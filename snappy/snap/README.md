@@ -21,7 +21,7 @@ jobs:
       id-token: write   # required to sign with the job's identity
       contents: read
     steps:
-      - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
         with:
           spec: builtin:github/repo.yaml
           vars: |
@@ -101,7 +101,7 @@ the exact variables and masks each one uses.
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: builtin:github/branch-rules.yaml
       vars: |
@@ -116,7 +116,7 @@ steps:
 ```yaml
 steps:
   - if: github.event.organization.login != ''
-    uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+    uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: builtin:github/org.yaml
       vars: ORG=${{ github.event.organization.login }}
@@ -131,7 +131,7 @@ steps:
     with:
       persist-credentials: false
 
-  - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: .snappy/releases.yaml
       vars: |
@@ -145,7 +145,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: builtin:gitlab/project.yaml
       platform: gitlab
@@ -162,7 +162,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: builtin:github/repo.yaml
       vars: |
@@ -170,7 +170,7 @@ steps:
         REPO=${{ github.event.repository.name }}
       output: attestations/repo.bundle.json
 
-  - uses: carabiner-dev/actions/snappy/snap@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/snappy/snap@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
     with:
       spec: builtin:github/branch-rules.yaml
       vars: |

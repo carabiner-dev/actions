@@ -112,7 +112,7 @@ jobs:
       id-token: write   # required to mint the workflow OIDC token
       contents: read
     steps:
-      - uses: carabiner-dev/actions/login@32587e82f960d49b36101e8c45d1956e511965d3 # v1.2.9 # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/login@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
 
       # Subsequent steps can read CARABINER_CREDENTIALS from the environment.
       - run: echo "token expires in ${{ steps.login.outputs.expires-in }}s"
