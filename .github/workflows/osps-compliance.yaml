@@ -1,0 +1,275 @@
+# SPDX-FileCopyrightText: Copyright 2026 Carabiner Systems, Inc
+# SPDX-License-Identifier: Apache-2.0
+---
+# Reusable OSPS Baseline compliance workflow.
+#
+# Gathers signed evidence about the calling repository (SBOM, committed
+# policy files, GitHub settings, Scorecard, tests, vulnerabilities and VEX),
+# packs it into one attestations.jsonl and evaluates it against an OSPS
+# Baseline policy with AMPEL. Call it from a workflow triggered on push:
+#
+#   jobs:
+#     compliance:
+#       permissions:
+#         id-token: write
+#         contents: read
+#         actions: read
+#       uses: carabiner-dev/actions/.github/workflows/osps-compliance.yaml@main
+#
+# To also publish the evidence and the evaluation results to the
+# repository's GitHub attestations store, add a job that calls
+# push-attestations.yaml after this one; see that workflow for the details.
+name: OSPS Compliance
+
+on:
+  workflow_call:
+    inputs:
+      policy:
+        description: AMPEL policy or policy set to evaluate the evidence against
+        type: string
+        required: false
+        # TODO: Pin this once we finalize the policy group
+        default: git+https://github.com/carabiner-dev/policies#sets/baseline/osps-baseline.policy.json
+      branch:
+        description: Branch to evaluate, defaults to the repository's default.
+        type: string
+        required: false
+        default: ''
+      slsa-source-workflow:
+        description: Name of the workflow that computes the SLSA source provenance for each push. Set to an empty string to skip fetching it.
+        type: string
+        required: false
+        default: SLSA Source
+      fail-on-policy:
+        description: Fail the job when the policy evaluation does not pass
+        type: boolean
+        required: false
+        default: false
+
+permissions: {}
+
+jobs:
+  attest:
+    name: Attest and evaluate
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # To sign the attestattions keyless
+      contents: read
+      actions: read   # Download the SLSA source provenance from another workflow run
+    env:
+      BRANCH: ${{ inputs.branch || github.event.repository.default_branch }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Go
+        if: hashFiles('go.mod') != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      # ------------------------------------------------------------------
+      # Software bill of materials
+      # ------------------------------------------------------------------
+      - name: Generate SBOMs
+        uses: $/sbom/source
+        with:
+          format: spdx
+          files: 'true'
+          sign: 'true'
+          networking: full
+          output-path: attestations/
+
+      # ------------------------------------------------------------------
+      # Policy documents committed to the repository, attested to the commit
+      # ------------------------------------------------------------------
+      - name: Attest Security Insights
+        if: hashFiles('SECURITY-INSIGHTS.yml') != ''
+        uses: $/bnd/commit
+        with:
+          path: SECURITY-INSIGHTS.yml
+          type: https://github.com/ossf/security-insights-spec
+          output: attestations/si.bundle.json
+
+      - name: Attest OpenEoX
+        if: hashFiles('.openeox.json') != ''
+        uses: $/bnd/commit
+        with:
+          path: .openeox.json
+          type: https://docs.oasis-open.org/openeox/core/v1.0
+          output: attestations/openeox.bundle.json
+
+      # ------------------------------------------------------------------
+      # GitHub settings, snapshotted from the API
+      # ------------------------------------------------------------------
+      - name: Attest organization settings
+        if: github.event.organization.login != ''
+        uses: $/snappy/snap
+        with:
+          spec: builtin:github/org.yaml
+          vars: ORG=${{ github.event.organization.login }}
+          output: attestations/org.bundle.json
+
+      - name: Attest branch rules
+        uses: $/snappy/snap
+        with:
+          spec: builtin:github/branch-rules.yaml
+          vars: |
+            ORG=${{ github.repository_owner }}
+            REPO=${{ github.event.repository.name }}
+            BRANCH=${{ env.BRANCH }}
+          output: attestations/branch.bundle.json
+
+      - name: Attest repository settings
+        uses: $/snappy/snap
+        with:
+          spec: builtin:github/repo.yaml
+          vars: |
+            ORG=${{ github.repository_owner }}
+            REPO=${{ github.event.repository.name }}
+          output: attestations/repo.bundle.json
+
+      # ------------------------------------------------------------------
+      # OpenSSF Scorecard. The CLI is installed from its verified release
+      # because ossf/scorecard-action cannot emit in-toto results yet; the
+      # installer goes away once it can.
+      # ------------------------------------------------------------------
+      - name: Install Scorecard
+        uses: $/install/scorecard
+
+      - name: Run Scorecard
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          scorecard \
+            --repo="${REPOSITORY}" \
+            --commit="${COMMIT}" \
+            --format=intoto \
+            > scorecard.intoto.json
+
+      - name: Attest Scorecard results
+        uses: $/bnd/sign
+        with:
+          json-path: scorecard.intoto.json
+          output: attestations/scorecard.bundle.json
+
+      # ------------------------------------------------------------------
+      # Tests (Go modules only, beaker runs go test)
+      # ------------------------------------------------------------------
+      - name: Attest tests
+        if: hashFiles('go.mod') != ''
+        uses: $/beaker/tests
+        with:
+          output: attestations/tests.bundle.json
+
+      # ------------------------------------------------------------------
+      # Vulnerabilities: OSV scan results and the VEX document that
+      # assesses them
+      # ------------------------------------------------------------------
+      - name: Scan with OSV
+        uses: google/osv-scanner-action/osv-scanner-action@b77c075a1235514558f0eb88dbd31e22c45e0cd2 # v2.3.0
+        continue-on-error: true # a non-zero exit means findings, not a failure
+        with:
+          scan-args: |-
+            --output=osv-results.json
+            --format=json
+            .
+
+      - name: Attest OSV results
+        if: hashFiles('osv-results.json') != ''
+        uses: $/bnd/sign
+        with:
+          json-path: osv-results.json
+          is-predicate: 'true'
+          predicate-type: https://ossf.github.io/osv-schema/results@v1.6.7
+          subject: sha1:${{ github.sha }}
+          output: attestations/osv-results.bundle.json
+
+      - name: Attest VEX document
+        uses: $/vexflow/assemble
+        with:
+          branch: ${{ env.BRANCH }}
+          output: attestations/openvex.bundle.json
+
+      # ------------------------------------------------------------------
+      # SLSA source provenance, computed for this commit by another workflow
+      # ------------------------------------------------------------------
+      - name: Download SLSA source provenance
+        id: slsa-source
+        if: inputs.slsa-source-workflow != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+          WORKFLOW: ${{ inputs.slsa-source-workflow }}
+        run: |
+          set -euo pipefail
+
+          # Prefer a branch-push run: tag-push runs produce tag provenance
+          # that the policy chains cannot resolve.
+          run_id="$(gh run list \
+            --repo "${REPOSITORY}" \
+            --workflow "${WORKFLOW}" \
+            --commit "${COMMIT}" \
+            --event push \
+            --status success \
+            --limit 10 \
+            --json databaseId,headBranch \
+            --jq '[.[] | select(.headBranch | startswith("refs/tags/") | not)] | .[0].databaseId // empty')"
+
+          if [ -z "${run_id}" ]; then
+            run_id="$(gh run list \
+              --repo "${REPOSITORY}" \
+              --workflow "${WORKFLOW}" \
+              --commit "${COMMIT}" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')"
+          fi
+
+          if [ -z "${run_id}" ]; then
+            echo "::notice::No successful '${WORKFLOW}' run found for ${COMMIT}, evaluating without source provenance"
+            exit 0
+          fi
+
+          gh run download "${run_id}" \
+            --repo "${REPOSITORY}" \
+            --name prov_metadata \
+            --dir slsa-source
+
+          bundle="slsa-source/signed_bundle.intoto.jsonl"
+          if [ -s "${bundle}" ]; then
+            echo "jsonl=${bundle}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "::warning::Run ${run_id} of '${WORKFLOW}' has no signed_bundle.intoto.jsonl, evaluating without source provenance"
+          fi
+
+      # ------------------------------------------------------------------
+      # Pack everything and evaluate the policy
+      # ------------------------------------------------------------------
+      - name: Pack attestations
+        uses: $/bnd/pack
+        with:
+          bundles: |
+            attestations/
+            ${{ steps.slsa-source.outputs.jsonl }}
+          output: attestations.jsonl
+          upload-artifact: 'true'
+
+      - name: Evaluate compliance
+        uses: $/ampel/verify
+        with:
+          subject: sha1:${{ github.sha }}
+          collector: jsonl:attestations.jsonl
+          policy: ${{ inputs.policy }}
+          attest: 'true'
+          results-path: ampel.intoto.json
+          push-attestation: 'true'
+          fail: ${{ inputs.fail-on-policy }}
