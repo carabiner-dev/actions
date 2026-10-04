@@ -61,8 +61,10 @@ runs:
         BOOTSTRAP_DIR=$(mktemp -d)
         BINARY="${BOOTSTRAP_DIR}/ampel${STEPS_PLATFORM_OUTPUTS_EXT}"
 
-        # Download the pinned bootstrap version with retries for transient errors
-        DOWNLOAD_URL="https://github.com/carabiner-dev/ampel/releases/download/${BOOTSTRAP_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
+        # Download the pinned bootstrap version with retries for transient errors.
+        # The repository moved from carabiner-dev to policylabs with its
+        # releases; the hashes below, not the location, are what is trusted.
+        DOWNLOAD_URL="https://github.com/policylabs/ampel/releases/download/${BOOTSTRAP_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
         MAX_RETRIES=3
         for attempt in $(seq 1 "${MAX_RETRIES}"); do
           if curl -sSfL -o "${BINARY}" "${DOWNLOAD_URL}"; then

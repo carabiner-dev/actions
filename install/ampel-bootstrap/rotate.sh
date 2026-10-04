@@ -12,7 +12,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION_YML="${SCRIPT_DIR}/action.yml"
-REPO="carabiner-dev/ampel"
+REPO="policylabs/ampel"
 
 # Determine target version
 if [ $# -ge 1 ]; then
