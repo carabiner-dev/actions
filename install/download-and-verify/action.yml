@@ -21,9 +21,19 @@ inputs:
     required: false
     default: '$HOME/.carabiner'
   repo:
-    description: 'GitHub repository under carabiner-dev (defaults to tool name)'
+    description: 'GitHub repository name, without the organization (defaults to tool name)'
     required: false
     default: ''
+  orgs:
+    description: >
+      Space-separated GitHub organizations that host the tool's repository,
+      most current first. The release is downloaded from the first one that
+      has it. Projects that moved organizations have releases built in each
+      of them, so by default the provenance is accepted when it verifies
+      against any one organization in the list: signed by the release
+      workflow of `<org>/<repo>` and built from `<org>/<repo>`.
+    required: false
+    default: 'policylabs carabiner-dev'
   verify:
     description: 'Verify the binary with ampel against SLSA provenance'
     required: false
@@ -42,17 +52,17 @@ inputs:
   context:
     description: >
       Newline-separated context values passed to `ampel verify` as `-x KEY:VALUE`.
-      When empty, the action injects `buildPoint:git+ssh://github.com/carabiner-dev/<repo>`
-      derived from the download location, matching the URI scheme used in the
-      `resolvedDependencies` of carabiner-dev SLSA provenances.
+      When empty, the action injects `buildPoint:git+ssh://github.com/<org>/<repo>`
+      for each organization in `orgs`, matching the URI scheme used in the
+      `resolvedDependencies` of the projects' SLSA provenances.
     required: false
     default: ''
   signers:
     description: >
       Newline-separated signer identity specs passed to `ampel verify` as `--signer SPEC`.
       When empty, the action injects a sigstore regexp spec pinned to the
-      `<repo>/.github/workflows/release.yaml` workflow under carabiner-dev,
-      with the tag left as a regex wildcard.
+      `<repo>/.github/workflows/release.yaml` workflow under each organization
+      in `orgs`, with the tag left as a regex wildcard.
     required: false
     default: ''
 runs:
@@ -78,6 +88,29 @@ runs:
           echo "path=$dir" >> "$GITHUB_OUTPUT"
         env:
           INPUTS_INSTALL_DIR: ${{ inputs.install-dir }}
+
+      - name: Validate orgs
+        shell: bash
+        run: |
+          # Organization names end up in URLs and in a signer regexp, so they
+          # are held to what GitHub allows: alphanumerics and inner hyphens.
+          set -f
+          count=0
+          for org in $INPUTS_ORGS; do
+            case "$org" in
+              -*|*-|*[!A-Za-z0-9-]*)
+                echo "::error::orgs must be GitHub organization names; got: $org"
+                exit 1
+                ;;
+            esac
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::orgs must list at least one GitHub organization"
+            exit 1
+          fi
+        env:
+          INPUTS_ORGS: ${{ inputs.orgs }}
 
       - name: Bootstrap trusted ampel
         if: inputs.verify == 'true'
@@ -123,14 +156,35 @@ runs:
           INPUTS_VERSION: ${{ inputs.version }}
 
       - name: Install ${{ inputs.tool }}
+        id: install
         shell: bash
         run: |
           mkdir -p "${INSTALL_DIR}/bin" || :
-          curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
-            -o "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}" \
-            "https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"
-          chmod 0755 "${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}"
+          BINARY="${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}"
+
+          # Download from the first organization that has the release. Where
+          # the binary comes from is not what makes it trusted: the provenance
+          # check below is. Only transient errors are retried, so an
+          # organization that does not host the repository fails fast with a
+          # 404 and the next one is tried.
+          set -f
+          source_org=""
+          for org in $INPUTS_ORGS; do
+            if curl -sSfL --retry 3 --retry-delay 2 -o "${BINARY}" \
+              "https://github.com/${org}/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${STEPS_PLATFORM_OUTPUTS_FILENAME}"; then
+              source_org="$org"
+              break
+            fi
+          done
+          if [ -z "$source_org" ]; then
+            echo "::error::Could not download ${STEPS_PLATFORM_OUTPUTS_FILENAME} ${INPUTS_VERSION} from any of: ${INPUTS_ORGS}"
+            exit 1
+          fi
+          echo "Downloaded ${STEPS_PLATFORM_OUTPUTS_FILENAME} from ${source_org}/${STEPS_PLATFORM_OUTPUTS_REPO}"
+          echo "org=${source_org}" >> "$GITHUB_OUTPUT"
+          chmod 0755 "${BINARY}"
         env:
+          INPUTS_ORGS: ${{ inputs.orgs }}
           INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
           INPUTS_TOOL: ${{ inputs.tool }}
           STEPS_PLATFORM_OUTPUTS_EXT: ${{ steps.platform.outputs.ext }}
@@ -144,8 +198,8 @@ runs:
         env:
           CONTEXT_INPUT: ${{ inputs.context }}
           SIGNERS_INPUT: ${{ inputs.signers }}
-          DEFAULT_BUILD_POINT: git+ssh://github.com/carabiner-dev/${{ steps.platform.outputs.repo }}
-          DEFAULT_SIGNER: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/carabiner-dev/${{ steps.platform.outputs.repo }}/\.github/workflows/release\.yaml@refs/tags/[^/]+'
+          INPUTS_ORGS: ${{ inputs.orgs }}
+          SOURCE_ORG: ${{ steps.install.outputs.org }}
           INPUTS_TOOL: ${{ inputs.tool }}
           INPUTS_VERSION: ${{ inputs.version }}
           INSTALL_DIR: ${{ steps.install-dir.outputs.path }}
@@ -156,31 +210,69 @@ runs:
           STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH: ${{ steps.bootstrap.outputs.ampel-path }}
         run: |
           echo "::group::Verify ${INPUTS_TOOL} ${INPUTS_VERSION}"
+          set -f
 
-          args=(verify)
-          args+=(--subject="${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
-          args+=(--collector="https://github.com/carabiner-dev/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${INPUTS_ATTESTATION_FILE}")
-          args+=(--policy="${INPUTS_POLICY}")
+          base=(verify)
+          base+=(--subject="${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
+          base+=(--collector="https://github.com/${SOURCE_ORG}/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${INPUTS_ATTESTATION_FILE}")
+          base+=(--policy="${INPUTS_POLICY}")
 
-          if [ -n "$CONTEXT_INPUT" ]; then
-            while IFS= read -r line; do
-              [ -z "$line" ] && continue
-              args+=(-x "$line")
-            done <<< "$CONTEXT_INPUT"
-          else
-            args+=(-x "buildPoint:$DEFAULT_BUILD_POINT")
+          # A release carries the identity of the organization it was built
+          # in: its provenance names <org>/<repo> as the build point and is
+          # signed by that repository's release workflow. A project that moved
+          # organizations therefore has releases with either identity. Each
+          # organization is tried as a whole, build point and signer together,
+          # so a release must be consistent with one of them; mixing the build
+          # point of one with the signer of another never verifies.
+          #
+          # When the caller supplies both the context and the signers there
+          # is nothing left to derive from the organization, so verification
+          # runs once with exactly what was given.
+          orgs="$INPUTS_ORGS"
+          if [ -n "$CONTEXT_INPUT" ] && [ -n "$SIGNERS_INPUT" ]; then
+            orgs="caller-supplied"
           fi
 
-          if [ -n "$SIGNERS_INPUT" ]; then
-            while IFS= read -r line; do
-              [ -z "$line" ] && continue
-              args+=(--signer "$line")
-            done <<< "$SIGNERS_INPUT"
-          else
-            args+=(--signer "$DEFAULT_SIGNER")
-          fi
+          verified=""
+          failures=""
+          for org in $orgs; do
+            args=("${base[@]}")
 
-          "${STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH}" "${args[@]}"
+            if [ -n "$CONTEXT_INPUT" ]; then
+              while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                args+=(-x "$line")
+              done <<< "$CONTEXT_INPUT"
+            else
+              args+=(-x "buildPoint:git+ssh://github.com/${org}/${STEPS_PLATFORM_OUTPUTS_REPO}")
+            fi
+
+            if [ -n "$SIGNERS_INPUT" ]; then
+              while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                args+=(--signer "$line")
+              done <<< "$SIGNERS_INPUT"
+            else
+              args+=(--signer "sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/${org}/${STEPS_PLATFORM_OUTPUTS_REPO}/\.github/workflows/release\.yaml@refs/tags/[^/]+")
+            fi
+
+            if output=$("${STEPS_BOOTSTRAP_OUTPUTS_AMPEL_PATH}" "${args[@]}" 2>&1); then
+              echo "$output"
+              verified="$org"
+              break
+            fi
+            failures+="--- Verification against ${org}:"$'\n'"${output}"$'\n'
+          done
+
+          if [ -z "$verified" ]; then
+            echo "$failures"
+            echo "::endgroup::"
+            echo "::error::${INPUTS_TOOL} ${INPUTS_VERSION} did not verify against any of: ${orgs}"
+            exit 1
+          fi
+          if [ "$verified" != "caller-supplied" ]; then
+            echo "Provenance verified: ${INPUTS_TOOL} ${INPUTS_VERSION} was built in ${verified}/${STEPS_PLATFORM_OUTPUTS_REPO}"
+          fi
           echo "::endgroup::"
 
       - if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}

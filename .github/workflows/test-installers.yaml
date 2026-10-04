@@ -125,6 +125,40 @@ jobs:
         shell: bash
         run: snappy version
 
+      # ampel v1.3.10 lives in policylabs/ampel now but was built in
+      # carabiner-dev/ampel, so it downloads from the first organization and
+      # its provenance only verifies against the second.
+      - name: Download and verify a release built before its repository moved
+        uses: ./install/download-and-verify
+        with:
+          tool: ampel
+          version: v1.3.10
+          install-dir: $HOME/org-test/moved
+          attestation-file: ampel-v1.3.10.provenance.json
+
+      # The organization list is what decides which builders are trusted:
+      # the same release must be rejected when only the new one is listed.
+      - name: A release built outside the listed organizations is rejected
+        id: untrusted-org
+        continue-on-error: true
+        uses: ./install/download-and-verify
+        with:
+          tool: ampel
+          version: v1.3.10
+          install-dir: $HOME/org-test/untrusted
+          attestation-file: ampel-v1.3.10.provenance.json
+          orgs: policylabs
+
+      - name: Check the untrusted release was rejected
+        shell: bash
+        run: |
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "::error::download-and-verify accepted a release built outside the listed organizations"
+            exit 1
+          fi
+        env:
+          OUTCOME: ${{ steps.untrusted-org.outcome }}
+
   test-ampel-verify:
     runs-on: ubuntu-latest
     permissions:
@@ -256,11 +290,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p bundles
-          for spec in snappy:v0.2.6 unpack:v0.3.2 ampel:v1.3.7; do
-            tool="${spec%%:*}"; version="${spec##*:}"
+          for spec in carabiner-dev/snappy:v0.2.6 carabiner-dev/unpack:v0.3.2 policylabs/ampel:v1.3.7; do
+            repo="${spec%%:*}"; tool="${repo##*/}"; version="${spec##*:}"
             curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
               -o "bundles/${tool}-${version}.provenance.json" \
-              "https://github.com/carabiner-dev/${tool}/releases/download/${version}/${tool}-${version}.provenance.json"
+              "https://github.com/${repo}/releases/download/${version}/${tool}-${version}.provenance.json"
           done
           # A jsonl input to merge, with no trailing newline on purpose.
           curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 \
