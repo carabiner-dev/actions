@@ -71,9 +71,12 @@ runs:
         # Resources restrict which platform objects the token may act on.
         # RFC 8693 takes one resource parameter per URI; empty lets the server
         # stamp its default (the repository's whole organization).
-        requested_resources="$(printf '%s' "${INPUTS_RESOURCE}" | xargs)"
+        # Split on any whitespace, newlines included, into an array so a value
+        # is never glob-expanded. read returns non-zero at end of input.
+        resources=()
+        read -r -d '' -a resources <<< "${INPUTS_RESOURCE}" || true
         resource_args=()
-        for res in ${requested_resources}; do
+        for res in ${resources[@]+"${resources[@]}"}; do
           resource_args+=(--data-urlencode "resource=${res}")
         done
         response="$(curl -sS -w '\n%{http_code}' \
@@ -132,10 +135,14 @@ runs:
         fi
 
         # 3. Mask the carabiner token and publish it to subsequent steps.
+        # expires_in and scope come from the exchange response: strip CR/LF
+        # so they cannot add lines to GITHUB_OUTPUT. The token is already
+        # validated as a single line; strip it too so every write is alike.
+        strip_nl() { printf '%s' "$1" | tr -d '\n\r'; }
         echo "::add-mask::${token}"
-        printf 'CARABINER_CREDENTIALS=%s\n' "${token}" >> "${GITHUB_ENV}"
-        echo "expires-in=${expires_in}" >> "${GITHUB_OUTPUT}"
-        echo "scope=${granted_scope}" >> "${GITHUB_OUTPUT}"
+        printf 'CARABINER_CREDENTIALS=%s\n' "$(strip_nl "${token}")" >> "${GITHUB_ENV}"
+        printf 'expires-in=%s\n' "$(strip_nl "${expires_in}")" >> "${GITHUB_OUTPUT}"
+        printf 'scope=%s\n' "$(strip_nl "${granted_scope}")" >> "${GITHUB_OUTPUT}"
         echo "::notice::Logged in to carabiner; token valid for ${expires_in:-unknown}s"
       env:
         INPUTS_EXCHANGE_URL: ${{ inputs.exchange-url }}
