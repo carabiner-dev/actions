@@ -12,10 +12,12 @@ permissions:
   contents: read
 
 env:
-  # Pull requests from forks get no OIDC token, so keyless signing can't run
-  # there. Those runs sign with a throwaway key made for the run instead, and
-  # the verify job checks the attestation against its public key.
-  FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+  # Pull requests sign with a throwaway key made for the run, and the verify
+  # job checks the attestation against its public key: PRs from forks get no
+  # OIDC token, so keyless signing can't run there, and using the key for
+  # every PR keeps one path. Manual runs (workflow_dispatch) test keyless
+  # Sigstore signing.
+  KEY_SIGNING: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Produce an artifact to be attested by the provenance action.
@@ -49,7 +51,7 @@ jobs:
 
       - name: Generate a throwaway signing key
         id: key
-        if: env.FORK_PR == 'true'
+        if: env.KEY_SIGNING == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -66,11 +68,11 @@ jobs:
           # Watch only the build job; watching the whole run would include the
           # verify job (which needs this one) and deadlock.
           watch-jobs: build
-          # Empty outside fork PRs, which keeps keyless signing.
+          # Empty on manual runs, which keeps keyless signing.
           signing-key: ${{ steps.key.outputs.private }}
 
       - name: Upload the signing public key
-        if: env.FORK_PR == 'true'
+        if: env.KEY_SIGNING == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: signing-public-key
@@ -108,7 +110,7 @@ jobs:
           path: attestations
 
       - name: Verify artifact provenance with ampel
-        if: env.FORK_PR != 'true'
+        if: env.KEY_SIGNING != 'true'
         uses: ./ampel/verify
         with:
           subject: subject/artifact.txt
@@ -118,16 +120,16 @@ jobs:
           attest: "false"
 
       - name: Download the signing public key
-        if: env.FORK_PR == 'true'
+        if: env.KEY_SIGNING == 'true'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: signing-public-key
           path: signing-key
 
-      # Fork PRs: the attestation must verify against the throwaway key the
+      # Pull requests: the attestation must verify against the throwaway key the
       # provenance job signed with.
       - name: Verify artifact provenance with ampel (throwaway key)
-        if: env.FORK_PR == 'true'
+        if: env.KEY_SIGNING == 'true'
         uses: ./ampel/verify
         with:
           subject: subject/artifact.txt
