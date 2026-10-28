@@ -147,7 +147,7 @@ jobs:
           version: v1.3.10
           install-dir: $HOME/org-test/untrusted
           attestation-file: ampel-v1.3.10.provenance.json
-          orgs: policylabs
+          orgs: "policylabs carabiner-dev"
 
       - name: Check the untrusted release was rejected
         shell: bash
