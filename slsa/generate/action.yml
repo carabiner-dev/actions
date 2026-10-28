@@ -13,6 +13,14 @@ inputs:
     description: "Sign the attestation using the job's workload identity (Sigstore)"
     required: false
     default: "true"
+  signing-key:
+    description: >-
+      Path to a private key (PEM PKCS#8, PKCS#1 or SEC1) to sign with instead
+      of the workload identity. The attestation is then a bare DSSE envelope,
+      verified against the matching public key. Use it where keyless signing
+      has no OIDC token, such as pull requests from forks. Requires sign.
+    required: false
+    default: ""
   slsa-version:
     description: "SLSA predicate version to generate (1.0 or 0.2)"
     required: false
@@ -63,7 +71,7 @@ inputs:
   tejolote-version:
     description: "Released tejolote version to download and run"
     required: false
-    default: "v0.5.0"
+    default: "v0.6.0"
   verify:
     description: >-
       Verify the downloaded tejolote binary with ampel against its signed
@@ -162,6 +170,7 @@ runs:
         INPUTS_OUTPUT: ${{ inputs.output }}
         INPUTS_SLSA_VERSION: ${{ inputs.slsa-version }}
         INPUTS_SIGN: ${{ inputs.sign }}
+        INPUTS_SIGNING_KEY: ${{ inputs.signing-key }}
         INPUTS_WATCH_JOBS: ${{ inputs.watch-jobs }}
         INPUTS_ARTIFACTS: ${{ inputs.artifacts }}
         INPUTS_DEPENDENCIES: ${{ inputs.dependencies }}
@@ -184,6 +193,14 @@ runs:
         # Signing
         if [[ "${INPUTS_SIGN}" == "true" ]]; then
           ARGS+=(--sign)
+          # A key signature has no certificate or transparency-log proof to
+          # wrap in a sigstore bundle, so it is written as a DSSE envelope.
+          if [[ -n "${INPUTS_SIGNING_KEY}" ]]; then
+            ARGS+=(--signing-key="${INPUTS_SIGNING_KEY}" --envelope=dsse)
+          fi
+        elif [[ -n "${INPUTS_SIGNING_KEY}" ]]; then
+          echo "::error::signing-key is set but sign is not true"
+          exit 1
         fi
 
         # Watch specific jobs if specified

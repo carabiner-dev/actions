@@ -11,6 +11,14 @@ on:
 permissions:
   contents: read
 
+env:
+  # Pull requests sign with a throwaway key made for the run, and the verify
+  # job checks the attestation against its public key: PRs from forks get no
+  # OIDC token, so keyless signing can't run there, and using the key for
+  # every PR keeps one path. Manual runs (workflow_dispatch) test keyless
+  # Sigstore signing.
+  KEY_SIGNING: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Produce an artifact to be attested by the provenance action.
   build:
@@ -41,6 +49,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Generate a throwaway signing key
+        id: key
+        if: env.KEY_SIGNING == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/signing-key"
+          mkdir -p "${dir}"
+          openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out "${dir}/key.pem"
+          openssl pkey -in "${dir}/key.pem" -pubout -out public-key.pem
+          echo "private=${dir}/key.pem" >> "${GITHUB_OUTPUT}"
+
       - name: Generate provenance
         id: slsa
         uses: ./slsa/generate
@@ -48,6 +68,15 @@ jobs:
           # Watch only the build job; watching the whole run would include the
           # verify job (which needs this one) and deadlock.
           watch-jobs: build
+          # Empty on manual runs, which keeps keyless signing.
+          signing-key: ${{ steps.key.outputs.private }}
+
+      - name: Upload the signing public key
+        if: env.KEY_SIGNING == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signing-public-key
+          path: public-key.pem
 
       - name: Upload provenance attestation
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -81,10 +110,30 @@ jobs:
           path: attestations
 
       - name: Verify artifact provenance with ampel
+        if: env.KEY_SIGNING != 'true'
         uses: ./ampel/verify
         with:
           subject: subject/artifact.txt
           collector: "fs:attestations"
           policy: "git+https://github.com/carabiner-dev/policies#slsa/has-attestation.json"
           signer: 'sigstore(regexp)::https://token\.actions\.githubusercontent\.com::https://github\.com/carabiner-dev/actions/\.github/workflows/test-slsa-generate\.yaml@refs/.+'
+          attest: "false"
+
+      - name: Download the signing public key
+        if: env.KEY_SIGNING == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: signing-public-key
+          path: signing-key
+
+      # Pull requests: the attestation must verify against the throwaway key the
+      # provenance job signed with.
+      - name: Verify artifact provenance with ampel (throwaway key)
+        if: env.KEY_SIGNING == 'true'
+        uses: ./ampel/verify
+        with:
+          subject: subject/artifact.txt
+          collector: "fs:attestations"
+          policy: "git+https://github.com/carabiner-dev/policies#slsa/has-attestation.json"
+          key: signing-key/public-key.pem
           attest: "false"

@@ -113,6 +113,7 @@ jobs:
 | Name | Description | Default |
 |------|-------------|---------|
 | `sign` | Sign the attestation with Sigstore | `true` |
+| `signing-key` | Path to a private key (PEM) to sign with instead of Sigstore; the attestation is then a DSSE envelope verified against the public key. For runs with no OIDC token, such as fork PRs. Requires `sign` | `""` |
 | `slsa-version` | SLSA predicate version (`1.0` or `0.2`) | `1.0` |
 | `output` | Path to write the attestation file | `provenance.intoto.jsonl` |
 | `watch-jobs` | Comma-separated job names to watch (empty = all siblings) | `""` |
@@ -121,7 +122,7 @@ jobs:
 | `artifacts-filter` | Glob (path.Match) matched against artifact names; only matching artifacts are attested (all sources) | `""` |
 | `dependencies` | Comma-separated dependency URIs to record | `""` |
 | `timeout` | Max time to wait for watched build jobs (Go duration, `0` disables) | `20m` |
-| `tejolote-version` | Released tejolote version to download and run | `v0.5.0` |
+| `tejolote-version` | Released tejolote version to download and run | `v0.6.0` |
 | `verify` | Verify the downloaded tejolote binary with the `ampel/verify` action against its signed SLSA provenance | `true` |
 | `policy` | Ampel policy locator applied when verifying the download | pinned `slsa/slsa-build-point` |
 | `build-point` | Expected source repository (VCS URI) the default policy checks in the provenance | `git+ssh://github.com/kubernetes-sigs/tejolote` |
