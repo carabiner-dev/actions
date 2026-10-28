@@ -15,7 +15,7 @@ inputs:
   version:
     description: 'Vexflow version to install'
     required: false
-    default: 'v0.0.1'
+    default: 'v0.0.4'
 runs:
   using: "composite"
   steps:
@@ -23,5 +23,8 @@ runs:
       with:
         tool: vexflow
         version: ${{ inputs.version }}
+        # vexflow moved to openvex: newer releases are built and signed
+        # there, while v0.0.1 and earlier were built in carabiner-dev.
+        orgs: 'openvex carabiner-dev'
         install-dir: ${{ inputs.install-dir }}
         attestation-file: vexflow-${{ inputs.version }}.provenance.json
