@@ -39,7 +39,10 @@ inputs:
     required: false
     default: 'true'
   attestation-file:
-    description: 'Name of the attestation file in the release'
+    description: >
+      Name of the attestation file in the release. Several names may be
+      given, separated by whitespace, for projects that renamed the file
+      between releases: the first one the release has is used.
     required: false
     default: 'attestations.jsonl'
   policy:
@@ -212,9 +215,26 @@ runs:
           echo "::group::Verify ${INPUTS_TOOL} ${INPUTS_VERSION}"
           set -f
 
+          # A project may rename its attestation file between releases, so
+          # the input may list several names. The release is probed for each
+          # in turn and the first one it has is used.
+          release="https://github.com/${SOURCE_ORG}/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}"
+          attestation_file=""
+          for name in $INPUTS_ATTESTATION_FILE; do
+            if curl -sSfLI --retry 3 --retry-delay 2 -o /dev/null "${release}/${name}"; then
+              attestation_file="$name"
+              break
+            fi
+          done
+          if [ -z "$attestation_file" ]; then
+            echo "::endgroup::"
+            echo "::error::Release ${INPUTS_VERSION} of ${SOURCE_ORG}/${STEPS_PLATFORM_OUTPUTS_REPO} has none of: ${INPUTS_ATTESTATION_FILE}"
+            exit 1
+          fi
+
           base=(verify)
           base+=(--subject="${INSTALL_DIR}/bin/${INPUTS_TOOL}${STEPS_PLATFORM_OUTPUTS_EXT}")
-          base+=(--collector="https://github.com/${SOURCE_ORG}/${STEPS_PLATFORM_OUTPUTS_REPO}/releases/download/${INPUTS_VERSION}/${INPUTS_ATTESTATION_FILE}")
+          base+=(--collector="${release}/${attestation_file}")
           base+=(--policy="${INPUTS_POLICY}")
 
           # A release carries the identity of the organization it was built

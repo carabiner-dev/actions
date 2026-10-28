@@ -15,7 +15,7 @@ inputs:
   version:
     description: 'snappy version to install'
     required: false
-    default: 'v0.2.6'
+    default: 'v0.2.7'
 runs:
   using: "composite"
   steps:
@@ -24,4 +24,8 @@ runs:
         tool: snappy
         version: ${{ inputs.version }}
         install-dir: ${{ inputs.install-dir }}
-        attestation-file: snappy-${{ inputs.version }}.provenance.json
+        # Releases from v0.2.7 ship every attestation in one file; earlier
+        # ones carry the provenance on its own under the versioned name.
+        attestation-file: |
+          attestations.intoto.jsonl
+          snappy-${{ inputs.version }}.provenance.json

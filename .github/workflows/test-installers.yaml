@@ -125,6 +125,14 @@ jobs:
         shell: bash
         run: snappy version
 
+      # snappy renamed its release attestation file in v0.2.7. The installer
+      # lists both names, so a release from before the rename still verifies.
+      - name: Install a snappy release from before its attestation file was renamed
+        uses: ./install/snappy
+        with:
+          version: v0.2.6
+          install-dir: $HOME/snappy-test/old
+
       # ampel v1.3.10 lives in policylabs/ampel now but was built in
       # carabiner-dev/ampel, so it downloads from the first organization and
       # its provenance only verifies against the second.
