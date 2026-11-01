@@ -15,7 +15,7 @@ inputs:
   version:
     description: 'Unpack version to install'
     required: false
-    default: 'v0.3.4'
+    default: 'v0.3.5'
 runs:
   using: "composite"
   steps:
