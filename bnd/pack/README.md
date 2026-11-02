@@ -9,7 +9,7 @@ it to 🔴🟡🟢 AMPEL through its `jsonl:` collector.
 ## Usage
 
 ```yaml
-- uses: carabiner-dev/actions/bnd/pack@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
+- uses: carabiner-dev/actions/bnd/pack@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
   with:
     bundles: attestations/
 ```
@@ -59,7 +59,7 @@ The action fails when nothing was packed.
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/bnd/pack@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/pack@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
     with:
       bundles: attestations/
       upload-artifact: 'true'
@@ -74,7 +74,7 @@ steps:
       name: source-provenance
       path: /tmp/slsa-source
 
-  - uses: carabiner-dev/actions/bnd/pack@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/pack@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
     with:
       bundles: |
         attestations/
@@ -85,12 +85,12 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/bnd/pack@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/pack@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
     id: pack
     with:
       bundles: attestations/
 
-  - uses: carabiner-dev/actions/ampel/verify@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0
+  - uses: carabiner-dev/actions/ampel/verify@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1
     with:
       subject: sha1:${{ github.sha }}
       collector: jsonl:${{ steps.pack.outputs.attestations }}
@@ -101,7 +101,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/bnd/pack@d41fe10fe88deaf493ce026007da73738b9f570c # v1.3.0 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/bnd/pack@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
     id: pack
     with:
       bundles: |
