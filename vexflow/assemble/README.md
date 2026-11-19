@@ -22,7 +22,7 @@ jobs:
       id-token: write   # required to sign with the job's identity
       contents: read
     steps:
-      - uses: carabiner-dev/actions/vexflow/assemble@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
+      - uses: carabiner-dev/actions/vexflow/assemble@2f56fd66c5ef961f72bca3dbacbbfbd9acc717ee # v1.3.2 # pin to a release commit once tagged
         with:
           output: attestations/openvex.bundle.json
 ```
@@ -93,7 +93,7 @@ subjects are the `product` values: hashes as given, files by their digest.
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/vexflow/assemble@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/vexflow/assemble@2f56fd66c5ef961f72bca3dbacbbfbd9acc717ee # v1.3.2 # pin to a release commit once tagged
     with:
       output: attestations/openvex.bundle.json
 ```
@@ -102,7 +102,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/vexflow/assemble@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/vexflow/assemble@2f56fd66c5ef961f72bca3dbacbbfbd9acc717ee # v1.3.2 # pin to a release commit once tagged
     with:
       branch: release-1.4
       sign: 'false'
@@ -115,7 +115,7 @@ steps:
 steps:
   - run: make dist/app
 
-  - uses: carabiner-dev/actions/vexflow/assemble@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/vexflow/assemble@2f56fd66c5ef961f72bca3dbacbbfbd9acc717ee # v1.3.2 # pin to a release commit once tagged
     with:
       product: |
         sha1:${{ github.sha }}
@@ -127,7 +127,7 @@ steps:
 
 ```yaml
 steps:
-  - uses: carabiner-dev/actions/vexflow/assemble@63d43b57262e65927864c8f7ca0a6a8efe06acc0 # v1.3.1 # pin to a release commit once tagged
+  - uses: carabiner-dev/actions/vexflow/assemble@2f56fd66c5ef961f72bca3dbacbbfbd9acc717ee # v1.3.2 # pin to a release commit once tagged
     with:
       triage-repo: my-org/security-triage
       output: attestations/openvex.bundle.json
