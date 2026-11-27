@@ -24,7 +24,7 @@ runs:
       run: |
         echo "::error::beaker does not have a Windows binary"
         exit 1
-    - uses: $/install/download-and-verify
+    - uses: policylabs/actions/install/download-and-verify@f9db671993861e6e060b2801dce24d2a396b982a
       with:
         tool: beaker
         version: ${{ inputs.version }}
