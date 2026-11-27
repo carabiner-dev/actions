@@ -10,6 +10,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    ignore:
+      # The automation that keeps the shims of the moved actions current
+      # also bumps every reference to them, all to the same release.
+      - dependency-name: "policylabs/actions*"
     groups:
       actions:
         update-types:

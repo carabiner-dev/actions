@@ -19,7 +19,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: $/install/download-and-verify
+    - uses: policylabs/actions/install/download-and-verify@f9db671993861e6e060b2801dce24d2a396b982a
       with:
         tool: vexflow
         version: ${{ inputs.version }}

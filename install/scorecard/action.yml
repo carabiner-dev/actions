@@ -127,7 +127,7 @@ runs:
       # provenance to the scorecard repository.
       - name: Verify scorecard ${{ inputs.version }} archive
         if: inputs.verify == 'true'
-        uses: $/ampel/verify
+        uses: policylabs/actions/ampel/verify@f9db671993861e6e060b2801dce24d2a396b982a
         with:
           subject: ${{ steps.install-dir.outputs.path }}/bin/${{ steps.platform.outputs.archive }}
           collector: https://github.com/ossf/scorecard/releases/download/${{ inputs.version }}/multiple.intoto.jsonl

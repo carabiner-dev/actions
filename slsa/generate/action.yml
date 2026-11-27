@@ -152,7 +152,7 @@ runs:
 
     - name: Verify tejolote provenance
       if: inputs.verify == 'true'
-      uses: $/ampel/verify
+      uses: policylabs/actions/ampel/verify@f9db671993861e6e060b2801dce24d2a396b982a
       with:
         subject: ${{ steps.install-tejolote.outputs.bin }}
         collector: "fs:${{ steps.install-tejolote.outputs.attest-dir }}"

@@ -4,6 +4,18 @@ This repository contains reusable GitHub Actions for various tools in the
 Carabiner ecosystem. These actions help streamline security policy verification,
 attestation management, and supply chain security workflows.
 
+> [!IMPORTANT]
+> The 🔴🟡🟢 AMPEL actions moved to
+> [policylabs/actions](https://github.com/policylabs/actions). AMPEL is now a
+> project of the [OpenSSF](https://openssf.org), developed in the PolicyLabs
+> organization, and its actions moved with it: `ampel/verify`,
+> `install/ampel`, and the two actions the installers are built on,
+> `install/download-and-verify` and `install/ampel-bootstrap`.
+>
+> The paths in this repository keep working for existing workflows, but new
+> ones should reference `policylabs/actions`: GitHub does not redirect action
+> references when a repository moves, so nothing switches over on its own.
+
 > [!NOTE]
 > The composite actions here compose one another through GitHub's `$/`
 > same-repository syntax, so every internal step resolves to the same commit
